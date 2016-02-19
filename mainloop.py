@@ -153,6 +153,8 @@ def get_serial_port(rigname):
         'B2': '/dev/ttyACM1',
         'B3': '/dev/ttyACM2',
         'B4': '/dev/ttyACM3',
+        'L4': '/dev/ttyACM0',
+        'GA1': 'dev/ttyACM0'
         }
     
     try:
@@ -343,6 +345,16 @@ def assign_rig_specific_params_licktrain(rigname, params_table):
 def assign_rig_specific_params_passive_detect(rigname, params_table):
     """Get rig-specific params and assign to init and current val in table"""
     d = get_rig_specific_passive_detect(rigname)
+    for param_name, param_value in d.items():
+        try:
+            params_table.loc[param_name, 'init_val'] = param_value
+        except KeyError:
+            raise ValueError("cannot find param named %s" % param_name)
+    return params_table
+
+def assign_rig_specific_params_twomotor(rigname, params_table)
+    """Get rig-specific params and assign to init and current val in table"""
+    d = get_rig_specific_twomotor(rigname)
     for param_name, param_value in d.items():
         try:
             params_table.loc[param_name, 'init_val'] = param_value

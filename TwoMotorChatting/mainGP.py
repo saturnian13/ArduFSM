@@ -54,6 +54,20 @@ if raw_input('Reupload protocol [y/N]? ').upper() == 'Y':
     # Should look for programmer is not responding in output and warn user
     # to plug/unplug arduino
 
+
+while True:
+    # Get the mouse name (default is blank, continue if not in index)
+    mouse_name = raw_input("Enter mouse name: ")
+    mouse_name = mouse_name.upper().strip()
+    if mouse_name == '':
+        mouse_name = 'default'
+    if mouse_name not in mouse_parameters_df.index:
+        continue
+
+    # Get the ui
+    ui_obj = mouse_parameters_df.loc[mouse_name, 'ui']
+    break
+
 ## Create Chatter
 logfilename = 'out.log'
 logfilename = None # autodate
@@ -62,8 +76,28 @@ chatter = ArduFSM.chat.Chatter(to_user=logfilename, to_user_dir='./logfiles',
 logfilename = chatter.ofi.name
 
 ## Initialize UI
-RUN_GUI = False
-ECHO_TO_STDOUT = True
+RUN_UI = True
+RUN_GUI = True
+ECHO_TO_STDOUT = not RUN_UI
+if RUN_UI:
+    ui = ui_obj(timeout=200, chatter=chatter, 
+        logfilename=logfilename,
+        ts_obj=ts_obj)
+
+    try:
+        ui.start()
+
+    except curses.error as err:
+        raise Exception(
+            "UI error. Most likely the window is, or was, too small.\n"
+            "Quit Python, type resizewin to set window to 80x23, and restart.")
+
+    except:
+        print "error encountered when starting UI"
+        raise
+    
+    finally:
+        ui.close()
 
 ## Main loop
 final_message = None
@@ -90,6 +124,7 @@ try:
         plotter2.init_handles()
         last_updated_trial = 0
     
+
     while True:
         ## Chat updates
         # Update chatter
@@ -99,7 +134,12 @@ try:
         # Could we skip this step if chatter reports no new device lines?
         #~ logfile_lines = TrialSpeak.read_lines_from_file(logfilename)
         #~ splines = TrialSpeak.split_by_trial(logfile_lines)
-
+        
+        ## Update UI
+        if RUN_UI:
+            ui.update_data(logfile_lines=logfile_lines)
+            ui.get_and_handle_keypress()
+        
         ## Update GUI
         # Put this in it's own try/except to catch plotting bugs
         if RUN_GUI:
@@ -133,6 +173,10 @@ except:
 finally:
     chatter.close()
     print "chatter closed"
+
+    if RUN_UI:
+    ui.close()
+    print "UI closed"
     
     if RUN_GUI:
         pass
@@ -147,13 +191,15 @@ finally:
 filename = chatter.ofi.name
     
 # Get mouse name
+#this is redundant, can probably use whatever was decided earlier
 print "Filename:", filename
-mousename = raw_input("Enter mouse name: ")
-mousename = mousename.strip()
+#mousename = raw_input("Enter mouse name: ")
+#mousename = mousename.strip()
+print "Mouse name:", mouse_name
 
 # Copy the file
-if mousename != '':
-    new_filename = filename + '.' + mousename
+if mouse_name != '':
+    new_filename = filename + '.' + mouse_name
     assert not os.path.exists(new_filename)
     shutil.copyfile(filename, new_filename)  
     print "Saved file as", new_filename

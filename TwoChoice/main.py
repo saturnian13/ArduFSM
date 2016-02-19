@@ -148,7 +148,7 @@ mouse_parameters_df = pandas.DataFrame.from_records([
 
 # Get the mouse name
 while True:
-    # Get the mosue name (default is blank, continue if not in index)
+    # Get the mouse name (default is blank, continue if not in index)
     mouse_name = raw_input("Enter mouse name: ")
     mouse_name = mouse_name.upper().strip()
     if mouse_name == '':
