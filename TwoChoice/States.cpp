@@ -379,7 +379,26 @@ int rotate_to_sensor(int step_size, bool positive_peak, long set_position)
   {
     // BLOCKING CALL //
     // Replace this with more iterations of smaller steps
-    stimStepper->step(step_size);
+    //~ stimStepper->step(step_size);
+    
+    // depends on which way we want to turn
+    if (step_size == 1){
+      digitalWrite(DIRECTION_PIN, HIGH);
+      digitalWrite(STEP_PIN, HIGH);
+      delay(10);
+      digitalWrite(STEP_PIN, LOW);
+      delay(10);
+    } else if (step_size == -1) {
+      digitalWrite(DIRECTION_PIN, LOW);
+      digitalWrite(STEP_PIN, HIGH);
+      delay(10);
+      digitalWrite(STEP_PIN, LOW);
+      delay(10);
+    } else {
+      // this should never happen
+    }
+    
+    // keep track of how many steps have been taken
     actual_steps += step_size;
     
     // update sensor and store previous value
@@ -429,8 +448,29 @@ int rotate(long n_steps)
   
   // BLOCKING CALL //
   // Replace this with more iterations of smaller steps
-  stimStepper->step(n_steps);
+  //~ stimStepper->step(n_steps);
 
+  // depends on which way we want to turn
+  if (n_steps > 0){
+    digitalWrite(DIRECTION_PIN, HIGH);
+    
+    for(int i=0; i < n_steps; i++) {
+      digitalWrite(STEP_PIN, HIGH);
+      delay(10);
+      digitalWrite(STEP_PIN, LOW);
+      delay(10);
+    }
+  } else if (n_steps < 0) {
+    digitalWrite(DIRECTION_PIN, LOW);
+    
+    for(int i=0; i < -n_steps; i++) {
+      digitalWrite(STEP_PIN, HIGH);
+      delay(10);
+      digitalWrite(STEP_PIN, LOW);
+      delay(10);
+    }
+  }  
+  
   // This delay doesn't seem necessary
   //delay(50);
   

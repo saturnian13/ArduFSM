@@ -119,9 +119,9 @@ void setup()
     // Make sure it's off    
     digitalWrite(TWOPIN_ENABLE_STEPPER, LOW); 
     
-    // Initialize
-    stimStepper = new Stepper(__HWCONSTANTS_H_NUMSTEPS, 
-      TWOPIN_STEPPER_1, TWOPIN_STEPPER_2);
+    //~ // Initialize
+    //~ stimStepper = new Stepper(__HWCONSTANTS_H_NUMSTEPS, 
+      //~ TWOPIN_STEPPER_1, TWOPIN_STEPPER_2);
   }
   else
   { // Four-pin mode
@@ -141,7 +141,7 @@ void setup()
     param_values[tpidx_REL_THRESH]);
 
   // Set the speed of the stepper
-  stimStepper->setSpeed(param_values[tpidx_STEP_SPEED]);
+  //~ stimStepper->setSpeed(param_values[tpidx_STEP_SPEED]);
   
   // initial position of the stepper
   sticky_stepper_position = param_values[tpidx_STEP_INITIAL_POS];
