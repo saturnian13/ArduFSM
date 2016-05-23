@@ -36,7 +36,7 @@ nosetests.xml
 .pydevproject
 
 # log files from behavior
-.log
+*.log
 
 
 # CR
