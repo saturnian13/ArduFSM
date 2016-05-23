@@ -115,15 +115,17 @@ void setup()
   if (param_values[tpidx_2PSTP] == __TRIAL_SPEAK_YES)
   { // Two-pin mode
     pinMode(TWOPIN_ENABLE_STEPPER, OUTPUT);
-    pinMode(TWOPIN_STEPPER_1, OUTPUT);
-    pinMode(TWOPIN_STEPPER_2, OUTPUT);
+    pinMode(DIRECTION_PIN, OUTPUT);
+    pinMode(STEP_PIN, OUTPUT);
+    //~ pinMode(TWOPIN_STEPPER_1, OUTPUT);
+    //~ pinMode(TWOPIN_STEPPER_2, OUTPUT);
     
     // Make sure it's off    
-    digitalWrite(TWOPIN_ENABLE_STEPPER, LOW); 
+    digitalWrite(TWOPIN_ENABLE_STEPPER, HIGH); 
     
-    // Initialize
-    stimStepper = new Stepper(__HWCONSTANTS_H_NUMSTEPS, 
-      TWOPIN_STEPPER_1, TWOPIN_STEPPER_2);
+    //~ // Initialize
+    //~ stimStepper = new Stepper(__HWCONSTANTS_H_NUMSTEPS, 
+      //~ TWOPIN_STEPPER_1, TWOPIN_STEPPER_2);
   }
   else
   { // Four-pin mode
@@ -143,7 +145,7 @@ void setup()
     param_values[tpidx_REL_THRESH]);
 
   // Set the speed of the stepper
-  stimStepper->setSpeed(param_values[tpidx_STEP_SPEED]);
+  //~ stimStepper->setSpeed(param_values[tpidx_STEP_SPEED]);
   
   // initial position of the stepper
   sticky_stepper_position = param_values[tpidx_STEP_INITIAL_POS];
@@ -276,7 +278,7 @@ void loop()
       state_error_timeout = StateErrorTimeout(
         param_values[tpidx_ERROR_TIMEOUT], linServo);
     
-      next_state = ROTATE_STEPPER1;
+      next_state = ROTATE_STEPPER2;
       break;
     
     

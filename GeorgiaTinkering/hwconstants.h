@@ -10,10 +10,8 @@
 
 // Two-pin mode
 #define TWOPIN_ENABLE_STEPPER 7
-#define DIRECTION_PIN 6
-#define STEP_PIN 8
-//~ #define TWOPIN_STEPPER_1 6
-//~ #define TWOPIN_STEPPER_2 8
+#define TWOPIN_STEPPER_1 6
+#define TWOPIN_STEPPER_2 8
 
 // Four-pin mode
 #define ENABLE_STEPPER 12

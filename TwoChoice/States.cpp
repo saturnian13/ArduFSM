@@ -79,13 +79,13 @@ void StateResponseWindow::loop()
   // overridden in FakeResponseWindow
   set_licking_variables(licking_l, licking_r);
   
-  // transition if max rewards reached
-  if (my_rewards_this_trial >= param_values[tpidx_MRT])
-  {
-    next_state = INTER_TRIAL_INTERVAL;
-    flag_stop = 1;
-    return;
-  }
+  //~ // transition if max rewards reached
+  //~ if (my_rewards_this_trial >= param_values[tpidx_MRT])
+  //~ {
+    //~ next_state = INTER_TRIAL_INTERVAL;
+    //~ flag_stop = 1;
+    //~ return;
+  //~ }
 
   // Do nothing if both or neither are being licked.
   // Otherwise, assign current_response.
@@ -107,13 +107,13 @@ void StateResponseWindow::loop()
   // Move to reward state, or error if TOE is set, or otherwise stay
   if ((current_response == LEFT) && (param_values[tpidx_REWSIDE] == LEFT))
   { // Hit on left
-    next_state = REWARD_L;
+    //next_state = REWARD_L;
     my_rewards_this_trial++;
     results_values[tridx_OUTCOME] = OUTCOME_HIT;
   }
   else if ((current_response == RIGHT) && (param_values[tpidx_REWSIDE] == RIGHT))
   { // Hit on right
-    next_state = REWARD_R;
+    //next_state = REWARD_R;
     my_rewards_this_trial++;
     results_values[tridx_OUTCOME] = OUTCOME_HIT;
   }
@@ -123,22 +123,8 @@ void StateResponseWindow::loop()
   }
   else
   { // Error made, TOE is true
-    next_state = ERROR;
-
-    // The type of error depends on whether it's gonogo or 2AFC
-    if (param_values[tpidx_REWSIDE] == NOGO) {
-      // Response should have been nogo, so he made a false positive or a spoil
-      if (current_response == RIGHT) {
-        // Licked when he shouldn't have done anything
-        results_values[tridx_OUTCOME] = OUTCOME_ERROR;
-      } else {
-        // Licked the wrong pipe
-        results_values[tridx_OUTCOME] = OUTCOME_SPOIL;
-      }
-    } else {
-      // 2AFC task, so it's an error for licking the wrong way
-      results_values[tridx_OUTCOME] = OUTCOME_ERROR;
-    }
+    //next_state = ERROR;
+    results_values[tridx_OUTCOME] = OUTCOME_ERROR;
   }
 }
 
@@ -149,21 +135,18 @@ void StateResponseWindow::s_finish()
   {
     // The response was nogo
     results_values[tridx_RESPONSE] = NOGO;
-    
-    // Outcome depends on what he was supposed to do
-    if (param_values[tpidx_REWSIDE] == NOGO) {
-      // Correctly did nothing on a NOGO trial
-      results_values[tridx_OUTCOME] = OUTCOME_HIT;
-    } else {
-      // If this is a 2AFC task, then this is a spoil.
-      // If this is a gonogo task, then this is a miss.
-      // No way to tell which is which right now, so just call it a spoil
-      // regardless.
-      results_values[tridx_OUTCOME] = OUTCOME_SPOIL;
-    }
-
-  // In any case the trial is over
-  next_state = INTER_TRIAL_INTERVAL;
+    results_values[tridx_OUTCOME] = OUTCOME_SPOIL;
+  }
+  
+  //rotate(25);
+  
+  // Send to reward state if this was a rewarded trial
+  if (param_values[tpidx_REWSIDE] == LEFT) {
+    next_state = REWARD_L;
+  }
+  // Otherwise send to inter trial interval
+  else {
+    next_state = INTER_TRIAL_INTERVAL;
   }
 }
 
@@ -251,6 +234,8 @@ void StateWaitForServoMove::s_finish()
 //// Inter-trial interval
 void StateInterTrialInterval::s_setup()
 {
+  rotate(25); //rotate into gap between stimuli (so CS removed)
+ 
   // First-time code: Report results
   for(int i=0; i < N_TRIAL_RESULTS; i++)
   {
@@ -260,6 +245,7 @@ void StateInterTrialInterval::s_setup()
     Serial.print(" ");
     Serial.println(results_values[i]);
   }
+  
 }
 
 void StateInterTrialInterval::s_finish()
@@ -308,8 +294,28 @@ int state_rotate_stepper2(STATE_TYPE& next_state)
     
   // Take a shorter negative rotation, if available
   // For instance, to go from 0 to 150, it's better to go -50
-  if (remaining_rotation > 100)
+  //if (remaining_rotation > 100)
+  //  remaining_rotation -= 200;
+  
+  // First ensure that remaining rotation is positive
+  if (remaining_rotation < 0) {
+    remaining_rotation += 200;
+  }
+  
+  // Now flip a coin and rotate the other direction 50% of the time
+  if (random(0, 2) == 0) {
     remaining_rotation -= 200;
+  }
+  
+  // If not rotating at all, rotate a full circle
+  if (remaining_rotation == 0) {
+    if (random(0, 2) == 0) {
+      remaining_rotation = 200;
+    }
+    else {
+      remaining_rotation = -200;
+    }
+  }
   
   // convoluted way to determine step_size
   if (remaining_rotation < 0)
@@ -318,10 +324,47 @@ int state_rotate_stepper2(STATE_TYPE& next_state)
   // Perform the rotation
   if (param_values[tpidx_STP_HALL] == __TRIAL_SPEAK_YES)
   {
-    if (param_values[tpidx_STPPOS] == param_values[tpidx_STP_POSITIVE_STPPOS])
-      actual_steps = rotate_to_sensor(step_size, 1, param_values[tpidx_STPPOS]);
-    else
-      actual_steps = rotate_to_sensor(step_size, 0, param_values[tpidx_STPPOS]);
+    if (param_values[tpidx_STPPOS] == param_values[tpidx_STP_POSITIVE_STPPOS]) {
+      // We are trying to rotate to the positive magnet
+      if (remaining_rotation == 200) {
+        // We are rotating a full circle
+        // Rotate most of the way manually and then finish to sensor
+        rotate(150);
+        actual_steps = rotate_to_sensor(step_size, 1, param_values[tpidx_STPPOS]);
+      } else if (remaining_rotation == -200) {
+        // Full negative circle
+        rotate(-150);
+        actual_steps = rotate_to_sensor(step_size, 1, param_values[tpidx_STPPOS]);
+      } else {
+        // Something other than a full circle
+        actual_steps = rotate_to_sensor(step_size, 1, param_values[tpidx_STPPOS]);
+      }
+    }
+    
+    else if (param_values[tpidx_STPPOS] == 50) {
+
+      // We are trying to rotate to the negative magnet
+      if (remaining_rotation == 200) {
+        // We are rotating a full circle
+        // Rotate most of the way manually and then finish to sensor
+        rotate(150);
+        actual_steps = rotate_to_sensor(step_size, 0, param_values[tpidx_STPPOS]);
+      } else if (remaining_rotation == -200) {
+        // Full negative circle
+        rotate(-150);
+        actual_steps = rotate_to_sensor(step_size, 0, param_values[tpidx_STPPOS]);
+      } else {
+        // Something other than a full circle
+        actual_steps = rotate_to_sensor(step_size, 0, param_values[tpidx_STPPOS]);
+      }
+    }
+    
+    else {
+      // We are rotating to a non-magnet position
+      rotate(remaining_rotation);
+      actual_steps = remaining_rotation;
+    }
+    
     if (actual_steps != remaining_rotation)
     {
       Serial.print(millis());
@@ -354,9 +397,9 @@ int rotate_to_sensor(int step_size, bool positive_peak, long set_position)
   
   // Enable the stepper according to the type of setup
   if (param_values[tpidx_2PSTP] == __TRIAL_SPEAK_YES)
-    digitalWrite(TWOPIN_ENABLE_STEPPER, HIGH);
+    digitalWrite(TWOPIN_ENABLE_STEPPER, LOW);
   else
-    digitalWrite(ENABLE_STEPPER, HIGH);
+    digitalWrite(ENABLE_STEPPER, LOW);
   
   // Sometimes the stepper spins like crazy without a delay here
   delay(__HWCONSTANTS_H_STP_POST_ENABLE_DELAY);  
@@ -366,34 +409,56 @@ int rotate_to_sensor(int step_size, bool positive_peak, long set_position)
   {
     // BLOCKING CALL //
     // Replace this with more iterations of smaller steps
-    stimStepper->step(step_size);
+    //~ stimStepper->step(step_size);
+    
+    // depends on which way we want to turn
+    if (step_size == 1){
+      digitalWrite(DIRECTION_PIN, HIGH);
+      digitalWrite(STEP_PIN, HIGH);
+      delay(10);
+      digitalWrite(STEP_PIN, LOW);
+      delay(10);
+    } else if (step_size == -1) {
+      digitalWrite(DIRECTION_PIN, LOW);
+      digitalWrite(STEP_PIN, HIGH);
+      delay(10);
+      digitalWrite(STEP_PIN, LOW);
+      delay(10);
+    } else {
+      // this should never happen
+    }
+    
+    // keep track of how many steps have been taken
     actual_steps += step_size;
     
     // update sensor and store previous value
     prev_sensor = sensor;
     sensor = analogRead(__HWCONSTANTS_H_HALL);
-
+    
+    
     // test if peak found
     if (positive_peak && (sensor > 520) && ((sensor - prev_sensor) < -2))
     {
+
         // Positive peak: sensor is high, but decreasing
         keep_going = 0;
     }
     else if (!positive_peak && (sensor < 504) && ((sensor - prev_sensor) > 2))
     {
+
         // Negative peak: sensor is low, but increasing
         keep_going = 0;
     }
   }
-  
+
   // update to specified position
   sticky_stepper_position = set_position;
   
   // disable
   if (param_values[tpidx_2PSTP] == __TRIAL_SPEAK_YES)
-    digitalWrite(TWOPIN_ENABLE_STEPPER, LOW);
+    digitalWrite(TWOPIN_ENABLE_STEPPER, HIGH);
   else
-    digitalWrite(ENABLE_STEPPER, LOW);    
+    digitalWrite(ENABLE_STEPPER, HIGH);    
   
   return actual_steps;
 }
@@ -407,25 +472,46 @@ int rotate(long n_steps)
 
   // Enable the stepper according to the type of setup
   if (param_values[tpidx_2PSTP] == __TRIAL_SPEAK_YES)
-    digitalWrite(TWOPIN_ENABLE_STEPPER, HIGH);
+    digitalWrite(TWOPIN_ENABLE_STEPPER, LOW);
   else
-    digitalWrite(ENABLE_STEPPER, HIGH);
+    digitalWrite(ENABLE_STEPPER, LOW);
 
   // Sometimes the stepper spins like crazy without a delay here
   delay(__HWCONSTANTS_H_STP_POST_ENABLE_DELAY);
   
   // BLOCKING CALL //
   // Replace this with more iterations of smaller steps
-  stimStepper->step(n_steps);
+  //~ stimStepper->step(n_steps);
 
+  // depends on which way we want to turn
+  if (n_steps > 0){
+    digitalWrite(DIRECTION_PIN, HIGH);
+    
+    for(int i=0; i < n_steps; i++) {
+      digitalWrite(STEP_PIN, HIGH);
+      delay(10);
+      digitalWrite(STEP_PIN, LOW);
+      delay(10);
+    }
+  } else if (n_steps < 0) {
+    digitalWrite(DIRECTION_PIN, LOW);
+    
+    for(int i=0; i < -n_steps; i++) {
+      digitalWrite(STEP_PIN, HIGH);
+      delay(10);
+      digitalWrite(STEP_PIN, LOW);
+      delay(10);
+    }
+  }  
+  
   // This delay doesn't seem necessary
   //delay(50);
   
   // disable
   if (param_values[tpidx_2PSTP] == __TRIAL_SPEAK_YES)
-    digitalWrite(TWOPIN_ENABLE_STEPPER, LOW);
+    digitalWrite(TWOPIN_ENABLE_STEPPER, HIGH);
   else
-    digitalWrite(ENABLE_STEPPER, LOW);
+    digitalWrite(ENABLE_STEPPER, HIGH);
   
   // update sticky_stepper_position
   sticky_stepper_position = sticky_stepper_position + n_steps;
@@ -440,7 +526,7 @@ int rotate(long n_steps)
 //// Post-reward state
 void StatePostRewardPause::s_finish()
 {
-  next_state = RESPONSE_WINDOW;
+  next_state = INTER_TRIAL_INTERVAL;
 }
 
 // The reward states use delay because they need to be millisecond-precise
@@ -449,7 +535,7 @@ int state_reward_l(STATE_TYPE& next_state)
   digitalWrite(L_REWARD_VALVE, HIGH);
   delay(param_values[tpidx_REWARD_DUR_L]);
   digitalWrite(L_REWARD_VALVE, LOW); 
-  next_state = POST_REWARD_PAUSE;
+  next_state = INTER_TRIAL_INTERVAL;
   return 0;  
 }
 int state_reward_r(STATE_TYPE& next_state)
@@ -457,6 +543,6 @@ int state_reward_r(STATE_TYPE& next_state)
   digitalWrite(R_REWARD_VALVE, HIGH);
   delay(param_values[tpidx_REWARD_DUR_R]);
   digitalWrite(R_REWARD_VALVE, LOW); 
-  next_state = POST_REWARD_PAUSE;
+  next_state = INTER_TRIAL_INTERVAL;
   return 0;  
 }

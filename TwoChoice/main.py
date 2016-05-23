@@ -99,6 +99,12 @@ if raw_input('Reupload protocol [y/N]? ').upper() == 'Y':
 # Get a rig parameter
 if rigname in ['L0', 'B1', 'B2', 'B3', 'B4']:
     reverse_srvpos = True
+elif rigname == 'L4':
+    trial_types = mainloop.get_trial_types('trial_types_4stppos')
+    reverse_srvpos = False    
+elif rigname == 'L5':
+    trial_types = mainloop.get_trial_types('trial_types_4stppos')
+    reverse_srvpos = False  
 else:
     reverse_srvpos = False
 
@@ -178,10 +184,9 @@ for key, value in params_to_set.items():
     params_table.loc[key, 'current-value'] = value
 
 ## Initialize the scheduler
-# Do all scheduler objects accept reverse_srvpos?
-scheduler = scheduler_obj(trial_types=trial_types, 
-    reverse_srvpos=reverse_srvpos,
-    **mouse_parameters_df.loc[mouse_name, 'scheduler_kwargs'])
+scheduler = Scheduler.SessionStarter(trial_types=trial_types)
+scheduler = Scheduler.Auto(trial_types=trial_types, reverse_srvpos=reverse_srvpos)
+scheduler = Scheduler.RandomStim(trial_types=trial_types)
 
 ## Create Chatter
 logfilename = 'out.log'

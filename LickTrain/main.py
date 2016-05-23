@@ -23,6 +23,7 @@ from ArduFSM import mainloop
 this_dir_name = os.getcwd()
 rigname = os.path.split(this_dir_name)[1]
 serial_port = mainloop.get_serial_port(rigname)
+#~ serial_port = '/dev/ttyACM3'
 
 ## Get webcam params
 SHOW_WEBCAM = True
@@ -78,7 +79,7 @@ if raw_input('Reupload protocol [y/N]? ').upper() == 'Y':
         serial_port, protocol_name, protocol_name))
 
 ## Get trial types
-trial_types = mainloop.get_trial_types('trial_types_licktrain')
+trial_types = mainloop.get_trial_types('trial_types_licktrain_left')
 
 ## Initialize the scheduler
 scheduler = Scheduler.ForcedAlternationLickTrain(trial_types=trial_types)
@@ -218,6 +219,3 @@ finally:
     
     if final_message is not None:
         print final_message
-    
-
-

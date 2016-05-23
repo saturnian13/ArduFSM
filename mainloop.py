@@ -153,10 +153,8 @@ def get_serial_port(rigname):
         'B2': '/dev/ttyACM1',
         'B3': '/dev/ttyACM2',
         'B4': '/dev/ttyACM3',
-        'L4': '/dev/ttyACM0',
-        'M1': '/dev/ttyACM2',
-	'M2': '/dev/ttyACM3',
-	#Georgia/Amanda mod setups are M1-3. Will need another USB hub for M3
+        'L4': '/dev/ttyACM0',        
+        'L5': '/dev/ttyACM1',
         }
     
     try:
@@ -213,7 +211,6 @@ def get_rig_specific(rigname):
             'STPHAL': YES,
             'HALPOS': 50,
             }  
-            
     elif rigname == 'B3':
         return {
             'STPSPD': 30,
@@ -250,17 +247,33 @@ def get_rig_specific(rigname):
             'HALPOS': 50,
             }  
 
-    elif rigname == 'B2':
+    elif rigname == 'L4':
         return {
             'STPSPD': 30,
             '2PSTP': YES,
-            'SRVFAR' : 1100,
-            'SRVTT': 2000,
-            'RD_L': 60,
-            'RD_R': 65,
+            'SRVTT': 50,
+            'RD_L': 30,
+            'RD_R': 30,
             'STPHAL': YES,
             'HALPOS': 50,
-            }              
+            'TO': 10,
+            'RWIN': 2000,
+            'ITI': 4000,
+            }
+    elif rigname == 'L5':
+        return {
+            'STPSPD': 30,
+            '2PSTP': YES,
+            'SRVTT': 50,
+            'RD_L': 30,
+            'RD_R': 30,
+            'STPHAL': YES,
+            'HALPOS': 50,
+            'TO': 10,
+            'RWIN': 2000,
+            'ITI': 4000,
+            }
+
     else:
         raise ValueError("cannot find rig-specific for %s" % rigname)
 
@@ -296,6 +309,24 @@ def get_rig_specific_licktrain(rigname):
             'RD_L': 16,
             'RD_R': 25,
             }  
+
+    elif rigname == 'L4':
+        return {
+            'RD_L': 30,
+            'RD_R': 30,
+            }  
+            
+    elif rigname == 'L5':
+        return {
+            'RD_L': 30,
+            'RD_R': 30,
+            }  
+            
+    elif rigname == 'GA1':
+        return {
+            'RD_L': 30,
+            'RD_R': 30,
+        }
     
     elif rigname == 'B1':
         return {
