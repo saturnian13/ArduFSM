@@ -1,0 +1,81 @@
+Program name:
+twomotorstim? True
+ of steps for motor = 
+30
+Notes: 
+training - short trials and responses on st prd 
+Box1
+Allow responses during stim? True
+Program name:
+twomotor_M1_mTESTING
+Rewarded stimulus (1=top, 2=bot)
+1
+Percent trials rewarded stim only = 
+25
+Percent trials unrewarded stim only = 
+25
+Percent trials both stim = 
+25
+Percent trials neither stim = 
+25
+reward amount/duration =
+40
+stimDur =
+1500
+respDur =
+500
+ITI =
+500
+Timeout/punishment duration = 
+5000
+Motor speed = 
+80
+Number of steps for motor = 
+30
+Notes: 
+training - short trials and responses on st prd 
+Box1
+Allow responses during stim? True
+Starting session
+ 
+Unrewarded stimulus only
+Trial start time: 16990
+Start Response Window:18702
+End Response Window: 19203
+ 
+Unrewarded stimulus only
+Trial start time: 19704
+Start Response Window:21417
+End Response Window: 21918
+ 
+Unrewarded stimulus only
+Trial start time: 22419
+Lick!: 23200
+Incorrect lick during stim period: 23201
+Lick!: 23578
+Start Response Window:24133
+Lick!: 24133
+Unrewarded lick, timeout: 24134
+End Response Window: 29135
+ 
+Rewarded stimulus only
+Trial start time: 29636
+Lick!: 30318
+Reward!: 30318
+Lick!: 30606
+Lick!: 30974
+Start Response Window:31350
+End Response Window: 31851
+ 
+Unrewarded stimulus only
+Trial start time: 32352
+Start Response Window:34065
+End Response Window: 34566
+ 
+Rewarded stimulus only
+Trial start time: 35067
+Start Response Window:36781
+End Response Window: 37282
+ 
+Both stimuli
+Trial start time: 37783
