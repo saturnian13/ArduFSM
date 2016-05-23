@@ -154,7 +154,9 @@ def get_serial_port(rigname):
         'B3': '/dev/ttyACM2',
         'B4': '/dev/ttyACM3',
         'L4': '/dev/ttyACM0',
-        'GA1': 'dev/ttyACM0'
+        'M1': '/dev/ttyACM2',
+	'M2': '/dev/ttyACM3',
+	#Georgia/Amanda mod setups are M1-3. Will need another USB hub for M3
         }
     
     try:

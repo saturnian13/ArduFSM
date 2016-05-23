@@ -13,48 +13,38 @@ import shutil
 # Ardu imports. Because this is an example script that will be run in another
 # directory, don't assume we can import TrialSpeak et al directly
 import ArduFSM
-from ArduFSM import TrialSpeak, TrialMatrix
+#from ArduFSM import TrialSpeak, TrialMatrix
 from ArduFSM import trial_setter_ui
 from ArduFSM import Scheduler
 from ArduFSM import trial_setter
-from ArduFSM import mainloop
+from ArduFSM import twoMotorLoop
 
 
 ## Find out what rig we're in using the current directory
 this_dir_name = os.getcwd()
 rigname = os.path.split(this_dir_name)[1]
-serial_port = mainloop.get_serial_port(rigname)
+serial_port = twoMotorLoop.get_serial_port(rigname)
 #~ serial_port = '/dev/ttyACM2'
 
 if not os.path.exists(serial_port):
     raise OSError("serial port %s does not exist" % serial_port)
 
-## Get params
-params_table = mainloop.get_params_table()
-params_table = mainloop.assign_rig_specific_params_twomotor(rigname, params_table)
-params_table['current-value'] = params_table['init_val'].copy()
+##Get mouse params
+mouse_parameters_df = pandas.DataFrame.from_records([
+	('default', trial_setter_ui.UI, {'TG_STIM': 1}
+	),
+	('PM03-1', trial_setter_ui.UI, {'TG_STIM': 2}
+	),
+	('PM03-2', trial_setter_ui.UI, {'TG_STIM': 1}
+	),
+	('PM03-3', trial_setter_ui.UI, {'TG_STIM': 2}
+	),
+	('G23-4', trial_setter_ui.UI, {'TG_STIM': 1}
+	),
+	], columns = ('mouse', 'ui', 'params'),
+	).set_index('mouse')
 
-## Upload - need to fix Brandon up with most recent Arduino update, make rig specific folders
-if raw_input('Reupload protocol [y/N]? ').upper() == 'Y':
-    if rigname in ['L0']:
-        protocol_name = 'Detection'
-    elif rigname in ['M1']:
-        protocol_name = 'TwoMotorChatting_%s' % rigname
-        os.system('arduino --board arduino:avr:uno --port %s \
-        --pref sketchbook.path=/home/mouse/dev/ArduFSM \
-        --upload ~/dev/ArduFSM/%s/%s.ino' % (
-        serial_port, protocol_name, protocol_name))
-    else:
-        protocol_name = 'TwoChoice_%s' % rigname
-    os.system('arduino --board arduino:avr:uno --port %s \
-        --pref sketchbook.path=/home/chris/dev/ArduFSM \
-        --upload ~/dev/ArduFSM/%s/%s.ino' % (
-        serial_port, protocol_name, protocol_name))
-    
-    # Should look for programmer is not responding in output and warn user
-    # to plug/unplug arduino
-
-
+## Get mouse name
 while True:
     # Get the mouse name (default is blank, continue if not in index)
     mouse_name = raw_input("Enter mouse name: ")
@@ -67,6 +57,18 @@ while True:
     # Get the ui
     ui_obj = mouse_parameters_df.loc[mouse_name, 'ui']
     break
+
+## Set params by mouse
+params_to_set = mouse_parameters_df.loc[mouse_name, 'params']
+for key, value in params_to_set.items():
+    params_table.loc[key, 'init_val'] = value
+    params_table.loc[key, 'current-value'] = value
+
+## Get params
+params_table = twoMotorLoop.get_params_table()
+params_table = twoMotorLoop.assign_rig_specific_params(rigname, params_table)
+#params_table = twoMotorLoop.assign_mouse_specific_params(rigname, mouse_name, params_table)
+params_table['current-value'] = params_table['init_val'].copy()
 
 ## Create Chatter
 logfilename = 'out.log'
