@@ -148,7 +148,8 @@ def get_serial_port(rigname):
         'L1': '/dev/ttyACM0', 
         'L2': '/dev/ttyACM1', 
         'L3': '/dev/ttyACM2', 
-        'L4': '/dev/ttyACM0',
+        'L4': '/dev/ttyACM0',        
+        'L5': '/dev/ttyACM1',
         }
     
     try:
@@ -218,7 +219,20 @@ def get_rig_specific(rigname):
             'TO': 10,
             'RWIN': 2000,
             'ITI': 4000,
-            }  
+            }
+    elif rigname == 'L5':
+        return {
+            'STPSPD': 30,
+            '2PSTP': YES,
+            'SRVTT': 50,
+            'RD_L': 30,
+            'RD_R': 30,
+            'STPHAL': YES,
+            'HALPOS': 50,
+            'TO': 10,
+            'RWIN': 2000,
+            'ITI': 4000,
+            }
             
     elif rigname == 'GA1':
         return {
@@ -269,6 +283,12 @@ def get_rig_specific_licktrain(rigname):
             }  
 
     elif rigname == 'L4':
+        return {
+            'RD_L': 30,
+            'RD_R': 30,
+            }  
+            
+    elif rigname == 'L5':
         return {
             'RD_L': 30,
             'RD_R': 30,

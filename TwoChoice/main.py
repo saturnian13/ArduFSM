@@ -48,6 +48,9 @@ elif rigname == 'L0':
 elif rigname == 'L4':
     trial_types = mainloop.get_trial_types('trial_types_4stppos')
     reverse_srvpos = False    
+elif rigname == 'L5':
+    trial_types = mainloop.get_trial_types('trial_types_4stppos')
+    reverse_srvpos = False  
 else:
     trial_types = mainloop.get_trial_types('trial_types_3srvpos')
     reverse_srvpos = False

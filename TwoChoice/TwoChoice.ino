@@ -113,11 +113,13 @@ void setup()
   if (param_values[tpidx_2PSTP] == __TRIAL_SPEAK_YES)
   { // Two-pin mode
     pinMode(TWOPIN_ENABLE_STEPPER, OUTPUT);
-    pinMode(TWOPIN_STEPPER_1, OUTPUT);
-    pinMode(TWOPIN_STEPPER_2, OUTPUT);
+    pinMode(DIRECTION_PIN, OUTPUT);
+    pinMode(STEP_PIN, OUTPUT);
+    //~ pinMode(TWOPIN_STEPPER_1, OUTPUT);
+    //~ pinMode(TWOPIN_STEPPER_2, OUTPUT);
     
     // Make sure it's off    
-    digitalWrite(TWOPIN_ENABLE_STEPPER, LOW); 
+    digitalWrite(TWOPIN_ENABLE_STEPPER, HIGH); 
     
     //~ // Initialize
     //~ stimStepper = new Stepper(__HWCONSTANTS_H_NUMSTEPS, 

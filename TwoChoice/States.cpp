@@ -313,6 +313,7 @@ int state_rotate_stepper2(STATE_TYPE& next_state)
     }
     
     else if (param_values[tpidx_STPPOS] == 50) {
+
       // We are trying to rotate to the negative magnet
       if (remaining_rotation == 200) {
         // We are rotating a full circle
@@ -367,9 +368,9 @@ int rotate_to_sensor(int step_size, bool positive_peak, long set_position)
   
   // Enable the stepper according to the type of setup
   if (param_values[tpidx_2PSTP] == __TRIAL_SPEAK_YES)
-    digitalWrite(TWOPIN_ENABLE_STEPPER, HIGH);
+    digitalWrite(TWOPIN_ENABLE_STEPPER, LOW);
   else
-    digitalWrite(ENABLE_STEPPER, HIGH);
+    digitalWrite(ENABLE_STEPPER, LOW);
   
   // Sometimes the stepper spins like crazy without a delay here
   delay(__HWCONSTANTS_H_STP_POST_ENABLE_DELAY);  
@@ -404,28 +405,31 @@ int rotate_to_sensor(int step_size, bool positive_peak, long set_position)
     // update sensor and store previous value
     prev_sensor = sensor;
     sensor = analogRead(__HWCONSTANTS_H_HALL);
-
+    
+    
     // test if peak found
     if (positive_peak && (sensor > 520) && ((sensor - prev_sensor) < -2))
     {
+
         // Positive peak: sensor is high, but decreasing
         keep_going = 0;
     }
     else if (!positive_peak && (sensor < 504) && ((sensor - prev_sensor) > 2))
     {
+
         // Negative peak: sensor is low, but increasing
         keep_going = 0;
     }
   }
-  
+
   // update to specified position
   sticky_stepper_position = set_position;
   
   // disable
   if (param_values[tpidx_2PSTP] == __TRIAL_SPEAK_YES)
-    digitalWrite(TWOPIN_ENABLE_STEPPER, LOW);
+    digitalWrite(TWOPIN_ENABLE_STEPPER, HIGH);
   else
-    digitalWrite(ENABLE_STEPPER, LOW);    
+    digitalWrite(ENABLE_STEPPER, HIGH);    
   
   return actual_steps;
 }
@@ -439,9 +443,9 @@ int rotate(long n_steps)
 
   // Enable the stepper according to the type of setup
   if (param_values[tpidx_2PSTP] == __TRIAL_SPEAK_YES)
-    digitalWrite(TWOPIN_ENABLE_STEPPER, HIGH);
+    digitalWrite(TWOPIN_ENABLE_STEPPER, LOW);
   else
-    digitalWrite(ENABLE_STEPPER, HIGH);
+    digitalWrite(ENABLE_STEPPER, LOW);
 
   // Sometimes the stepper spins like crazy without a delay here
   delay(__HWCONSTANTS_H_STP_POST_ENABLE_DELAY);
@@ -476,9 +480,9 @@ int rotate(long n_steps)
   
   // disable
   if (param_values[tpidx_2PSTP] == __TRIAL_SPEAK_YES)
-    digitalWrite(TWOPIN_ENABLE_STEPPER, LOW);
+    digitalWrite(TWOPIN_ENABLE_STEPPER, HIGH);
   else
-    digitalWrite(ENABLE_STEPPER, LOW);
+    digitalWrite(ENABLE_STEPPER, HIGH);
   
   // update sticky_stepper_position
   sticky_stepper_position = sticky_stepper_position + n_steps;
