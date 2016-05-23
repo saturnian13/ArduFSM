@@ -84,8 +84,6 @@ def read_lines_from_file(filename):
 def parse_lines_into_df(lines):
     """Parse every line into time, command, and argument.
     
-    Consider replacing this with read_logfile_into_df
-    
     In trial speak, each line has the same format: the time in milliseconds,
     space, a string command, space, an optional argument. This function parses
     each line into those three components and returns as a dataframe.
@@ -107,8 +105,6 @@ def parse_lines_into_df(lines):
         rec_l.append(sp_line)
     
     # DataFrame it and convert string times to integer
-    if len(rec_l) == 0:
-        raise ValueError("cannot extract any lines")
     df = pandas.DataFrame(rec_l, columns=['time', 'command', 'argument'])
     df['time'] = df['time'].astype(np.int)
     return df
@@ -118,9 +114,6 @@ def parse_lines_into_df_split_by_trial(lines, verbose=False):
     
     We drop everything before the first TRL_START token.
     If there is no TRL_START token, return None.
-    
-    This can be slow if each trial has to be processed separately.
-    Consider replacing this with read_logfile_into_df
     """
     # Parse
     df = parse_lines_into_df(lines)
@@ -206,7 +199,7 @@ def translate_trial_matrix(trial_matrix):
             nanval='curr')
     if 'rewside' in trial_matrix:
         trial_matrix['rewside'] = my_replace(trial_matrix['rewside'], {
-            LEFT: 'left', RIGHT: 'right', NOGO: 'nogo'})
+            LEFT: 'left', RIGHT: 'right'})
     if 'isrnd' in trial_matrix:
         assert trial_matrix['isrnd'].isin([YES, NO]).all()
         trial_matrix['isrnd'] = (trial_matrix['isrnd'] == YES)
@@ -305,10 +298,6 @@ def identify_state_change_time_old(splines, state0, state1):
 def identify_state_change_times(parsed_df_by_trial, state0=None, state1=None,
     show_warnings=True, error_on_multi=False, command='ST_CHG'):
     """Return time that state changed from state0 to state1
-    
-    Probably better to replace code using this with a combination of
-    ArduFSM.TrialSpeak.read_logfile_into_df
-    ArduFSM.TrialSpeak.get_commands_from_parsed_lines
     
     parsed_df_by_trial : result of parse_lines_into_df_split_by_trial
         (May be more efficient to rewrite this to operate on the whole thing?)
@@ -473,11 +462,6 @@ def make_trials_matrix_from_logfile_lines2(logfile_lines,
     always_insert=('resp', 'outc')):
     """Parse out the parameters and outcomes from the lines in the logfile
     
-    This was written to be a more optimized version of 
-    make_trials_matrix_from_logfile_lines and is used in trial_setter.
-    Should combine this with TrialMatrix.make_trial_matrix_from_logfile_lines
-    and just make one thing that does this function.
-    
     For each trial, the following parameters are extracted:
         trial_start : time in seconds at which TRL_START was issued
         trial_released: time in seconds at which trial was released
@@ -565,12 +549,6 @@ def make_trials_matrix_from_logfile_lines2(logfile_lines,
 def read_logfile_into_df(logfile, nargs=4, add_trial_column=True):
     """Read logfile into a DataFrame
     
-    Something like this should probably be the preferred way to read the 
-    lines into a structured data frame.
-    
-    Use get_commands_from_parsed_lines to parse the arguments, eg,
-    converting to numbers.
-    
     Each line in the file will be a row in the data frame.
     Each line is separated by whitespace into the different columns.
     Thus, the first column will be "time", the second "command", and the
@@ -625,77 +603,35 @@ def read_logfile_into_df(logfile, nargs=4, add_trial_column=True):
             rdf['trial'] = np.searchsorted(np.asarray(trl_start_idxs), 
                 np.asarray(rdf.index), side='right') - 1        
     
-    # Error check
-    # Very commonly the ACK TRL_RELEASED, AAR_L, and AAR_R commands
-    # are out of order. So ignore this for now.
-    # Somewhat commonly, there is a missing first digit of the time, for
-    # some reason.
-    rrdf = rdf[
-        ~rdf.command.isin(['DBG', 'ACK']) &
-        ~rdf.arg0.isin(['AAR_L', 'AAR_R'])
-        ]
-    unsorted_times = rrdf['time'].values
-    bad_args = np.where(np.diff(unsorted_times) < 0)[0]
-    if len(bad_args) > 0:
-        first_bad_arg = bad_args[0]
-        print "bad args"
-        pre_bad_arg = np.max([first_bad_arg - 2, 0])
-        post_bad_arg = np.min([first_bad_arg + 2, len(rrdf)])
-        bad_rows = rrdf.ix[rrdf.index[pre_bad_arg]:rrdf.index[post_bad_arg]]
-        print bad_rows
-        raise ValueError("unsorted times in logfile, starting at line %d" %
-            bad_args[0])
-    
     return rdf
     
-def get_commands_from_parsed_lines(parsed_lines, command,
-    arg2dtype=None):
+def get_commands_from_parsed_lines(parsed_lines, command):
     """Return only those lines that match "command" and set dtypes.
     
-    parsed_lines : result of read_logfile_into_df
-    command : 'ST_CHG', 'ST_CHG2', 'TCH', etc.
-        This is used to select rows from parsed_lines. For known arguments,
-        we can also use this to set arg2dtype.
-    arg2dtype : dict explaining which args to keep and what dtype to convert
-        e.g., {'arg0': np.int, 'arg1': np.float}
-    
-    Returns:
-        DataFrame with one row for each matching command, and just the
-        requested columns. We always include 'time', 'command', and
-        'trial' if available
-    
-    Can use something like this to group the result by trial and arg0:
-    tt2licks = lick_times.groupby(['trial', 'arg0']).groups
-    for (trial, lick_type) in tt2licks:
-        tt2licks[(trial, lick_type)] = \
-            ldf.loc[tt2licks[(trial, lick_type)], 'time'].values / 1000.    
-    
-    See BeWatch.misc for other examples of task-specific logic
+    For instance, for ST_CHG, we keep two numeric arguments.
     """
     # Pick
     res = my.pick_rows(parsed_lines, command=command)
     
     # Decide which columns to keep and how to coerce
     if command == 'ST_CHG2':
-        if arg2dtype is None:
-            arg2dtype = {'arg0': np.int, 'arg1': np.int}
+        keep_args = ['arg0', 'arg1']
+        arg_dtypes = [np.int, np.int]
     elif command == 'ST_CHG':
-        if arg2dtype is None:
-            arg2dtype = {'arg0': np.int, 'arg1': np.int}
-    elif command == 'TCH':
-        arg2dtype = {'arg0': np.int}
-    
-    if arg2dtype is None:
-        raise ValueError("must provide arg2dtype")
+        keep_args = ['arg0', 'arg1']
+        arg_dtypes = [np.int, np.int]
+    else:
+        # Keep all args?
+        1/0
     
     # Keep only the columns we want
-    keep_cols = ['time', 'command'] + sorted(arg2dtype.keys())
+    keep_cols = ['time', 'command'] + keep_args
     if 'trial' in res.columns:
         keep_cols.append('trial')    
     res = res[keep_cols]
 
     # Coerce dtypes
-    for argname, dtyp in arg2dtype.items():
+    for argname, dtyp in zip(keep_args, arg_dtypes):
         try:
             res[argname] = res[argname].astype(dtyp)
         except ValueError:

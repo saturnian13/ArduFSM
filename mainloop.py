@@ -53,7 +53,7 @@ def get_params_table():
         ('RD_L',    MD,       0, 0, 1, 1, 1),
         ('RD_R',    MD,       0, 0, 1, 1, 1),
         ('ITI',     50,       0, 0, 1, 0, 1),
-        ('PSW',     1,        0, 0, 0, 0, 0),
+        ('PSW',     1,        0, 0, 1, 0, 0),
         ('TO',      6000,     0, 0, 1, 0, 1),       
         ('TOE',     YES,      0, 0, 1, 0, 1),
         ('MRT',     1,        0, 0, 1, 0, 1),
@@ -64,13 +64,12 @@ def get_params_table():
         ('STPIP',   50,       0, 0, 0, 1, 1),
         ('SRVFAR',  1900,     0, 0, 0, 1, 1),
         ('SRVTT',   MD,       0, 0, 0, 1, 1),
-        ('RWIN',    45000,    0, 0, 1, 0, 1),
+        ('RWIN',    45000,    0, 0, 0, 0, 1),
         ('IRI',     500,      0, 0, 0, 0, 0),    
         ('TOUT',    6,        0, 0, 1, 1, 1),
         ('RELT',    6,        0, 0, 1, 1, 1),
         ('STPHAL',  MD,       0, 0, 0, 1, 1),
         ('HALPOS',  MD,       0, 0, 0, 1, 1),
-        ('DIRDEL',  NO,       1, 1, 0, 0, 0),
         ],
         columns=('name', 'init_val', 'required_ET', 'reported_ET', 
             'ui-accessible', 'rig-dependent', 'send_on_init'),
@@ -149,10 +148,6 @@ def get_serial_port(rigname):
         'L1': '/dev/ttyACM0', 
         'L2': '/dev/ttyACM1', 
         'L3': '/dev/ttyACM2', 
-        'B1': '/dev/ttyACM0',
-        'B2': '/dev/ttyACM1',
-        'B3': '/dev/ttyACM2',
-        'B4': '/dev/ttyACM3',
         'L4': '/dev/ttyACM0',        
         'L5': '/dev/ttyACM1',
         }
@@ -173,8 +168,8 @@ def get_rig_specific(rigname):
             '2PSTP': YES,
             'SRVFAR' : 1100,
             'SRVTT': 2000,
-            'RD_L': 90,
-            'RD_R': 110,
+            'RD_L': 19,
+            'RD_R': 43,
             'STPHAL': NO,
             'HALPOS': 50,
             }
@@ -185,7 +180,7 @@ def get_rig_specific(rigname):
             '2PSTP': NO,
             'SRVTT': 2000,
             'RD_L': 60,
-            'RD_R': 50,
+            'RD_R': 31,
             'STPHAL': YES,
             'HALPOS': 150,
             }
@@ -195,8 +190,8 @@ def get_rig_specific(rigname):
             'STPSPD': 30,
             '2PSTP': NO,
             'SRVTT': 2000,
-            'RD_L': 21,
-            'RD_R': 30,
+            'RD_L': 20,
+            'RD_R': 16,
             'STPHAL': YES,
             'HALPOS': 50,
             }
@@ -206,43 +201,8 @@ def get_rig_specific(rigname):
             'STPSPD': 30,
             '2PSTP': YES,
             'SRVTT': 2000,
-            'RD_L': 25,
-            'RD_R': 26,
-            'STPHAL': YES,
-            'HALPOS': 50,
-            }  
-    elif rigname == 'B3':
-        return {
-            'STPSPD': 30,
-            '2PSTP': YES,
-            'SRVFAR' : 1100,
-            'SRVTT': 2000,
-            'RD_L': 65,
-            'RD_R': 60,
-            'STPHAL': YES,
-            'HALPOS': 50,
-            }              
-
-    elif rigname == 'B4':
-        return {
-            'STPSPD': 30,
-            '2PSTP': YES,
-            'SRVFAR' : 1100,
-            'SRVTT': 2000,
-            'RD_L': 50,
-            'RD_R': 160,
-            'STPHAL': YES,
-            'HALPOS': 50,
-            }     
-
-    elif rigname == 'B1':
-        return {
-            'STPSPD': 30,
-            '2PSTP': YES,
-            'SRVFAR' : 1100,
-            'SRVTT': 2000,
-            'RD_L': 70,
-            'RD_R': 55,
+            'RD_L': 16,
+            'RD_R': 25,
             'STPHAL': YES,
             'HALPOS': 50,
             }  
@@ -273,7 +233,19 @@ def get_rig_specific(rigname):
             'RWIN': 2000,
             'ITI': 4000,
             }
-
+            
+    elif rigname == 'GA1':
+        return {
+            'STPSPD': 30,
+            '2PSTP': YES,
+            'SRVFAR' : 1100,
+            'SRVTT': 2000,
+            'RD_L': 19,
+            'RD_R': 43,
+            'STPHAL': NO,
+            'HALPOS': 50,
+            }
+    
     else:
         raise ValueError("cannot find rig-specific for %s" % rigname)
 
@@ -300,8 +272,8 @@ def get_rig_specific_licktrain(rigname):
     
     elif rigname == 'L2':
         return {
-            'RD_L': 23,
-            'RD_R': 21,
+            'RD_L': 20,
+            'RD_R': 16,
             }
     
     elif rigname == 'L3':
@@ -328,30 +300,6 @@ def get_rig_specific_licktrain(rigname):
             'RD_R': 30,
         }
     
-    elif rigname == 'B1':
-        return {
-            'RD_L': 60,
-            'RD_R': 50,
-            }  
-
-    elif rigname == 'B2':
-        return {
-            'RD_L': 60,
-            'RD_R': 150,
-            }              
-
-    elif rigname == 'B3':
-        return {
-            'RD_L': 100,
-            'RD_R': 60,
-            }  
-    
-    elif rigname == 'B4':
-        return {
-            'RD_L': 40,
-            'RD_R': 40,
-            }  
-    
     else:
         raise ValueError("cannot find rig-specific for %s" % rigname)
 
@@ -370,7 +318,7 @@ def assign_rig_specific_params_licktrain(rigname, params_table):
     d = get_rig_specific_licktrain(rigname)
     for param_name, param_value in d.items():
         try:
-            params_table.loc[param_name, 'init_val'] = param_value
+            params_table['init_val'][param_name] = param_value
         except KeyError:
             raise ValueError("cannot find param named %s" % param_name)
     return params_table
@@ -378,16 +326,6 @@ def assign_rig_specific_params_licktrain(rigname, params_table):
 def assign_rig_specific_params_passive_detect(rigname, params_table):
     """Get rig-specific params and assign to init and current val in table"""
     d = get_rig_specific_passive_detect(rigname)
-    for param_name, param_value in d.items():
-        try:
-            params_table.loc[param_name, 'init_val'] = param_value
-        except KeyError:
-            raise ValueError("cannot find param named %s" % param_name)
-    return params_table
-
-def assign_rig_specific_params_twomotor(rigname, params_table)
-    """Get rig-specific params and assign to init and current val in table"""
-    d = get_rig_specific_twomotor(rigname)
     for param_name, param_value in d.items():
         try:
             params_table.loc[param_name, 'init_val'] = param_value
