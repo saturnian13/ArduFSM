@@ -1,5 +1,4 @@
 int rewPin = 5; 
-
 void setup() {
   pinMode(rewPin,OUTPUT);
   digitalWrite(rewPin, LOW);
@@ -7,5 +6,6 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly: 
-  
+
 }
+

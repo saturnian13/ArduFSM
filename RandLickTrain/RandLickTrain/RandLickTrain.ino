@@ -1,5 +1,5 @@
 //Lick train program
-const int solTime = 40;
+const int solTime = 1040;
 int lickDetectPin = A2;
 int rewPin = 5; 
 int lickVal = 0;
@@ -12,7 +12,7 @@ void setup() {
   pinMode(rewPin, OUTPUT);
   digitalWrite(rewPin, LOW);
   
-  Serial.begin(9600);
+  Serial.begin(115200);
   randomSeed(analogRead(A4));
   
   delay(2000);

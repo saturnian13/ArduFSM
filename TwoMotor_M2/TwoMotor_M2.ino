@@ -1,20 +1,20 @@
 //This version is set for the modular behavior setups
 
 // VARIABLES TO CHECK FIRST!
-boolean stimResp = true; //determines whether responses are counted during the stim period
+boolean stimResp = false;//true; //determines whether responses are counted during the stim period
 const int stimDur = 1500;
-const int respDur = 500; //1500;
-const int solTime = 40; //time soleniod valve is open for delivery of water; controls how much water comes out each time
-const int punTime = 5000; //time in msec of timeout for unrewarded licks
-const int rewType = 1; //Determines whether top stimulus is rewarded (= 1) or bottom stimulus is rewarded (= 2)
-const int iti = 500; //3000;
+const int respDur = 1500; //1500;
+const int solTime = 30; //time soleniod valve is open for delivery of water; controls how much water comes out each time
+const int punTime = 6000;//5500; //time in msec of timeout for unrewarded licks
+const int rewType = 2; //Determines whether top stimulus is rewarded (= 1) or bottom stimulus is rewarded (= 2)
+const int iti = 2500;//1000;//500; //3000;
 
 
 // Initialize STEPPER library info
 #include <Stepper.h>
 
-String programName = "twomotor_M1_mTESTING";
-String notes = "training - short trials and responses on st prd ";
+String programName = "twomotor_M2_mpm03-3";
+String notes = "second session today to fix";
 
 //Trial variables
 long trialstart = 0;
@@ -60,8 +60,8 @@ int hallSensPinUpper = A1; //analog pin 0 on the board for box 1
 int hallSensPinLower = A0; //analog pin 1 on the board
 int hallSensValUpper = 500;
 int hallSensValLower = 500;
-int hallThreshUpper = 840; //Changing the thresholds can alter the exact position at which the motors stop
-int hallThreshLower = 970;
+int hallThreshUpper = 900; //Changing the thresholds can alter the exact position at which the motors stop
+int hallThreshLower = 925;
 int stepsUpper = stepNumber;
 int stepsLower = stepNumber;
 int upperMove = 0;
@@ -81,7 +81,8 @@ int rewState = 0; //Value changed to 1 when animal is reward or punished on each
 long respTime = 0; //Time in msec of reward/punish for each trial
 long respTimer = 0; //Timer for counting out the response window
 long punishResp = 0; //time that response that should be punished happened;
-
+int lickthresh = 900;
+int lowlickthresh = (lickthresh * -1);
 //  // experimenter start button
 //  int buttonPin = 8;    // define pin for exp lever
 //  int buttonState  = 0;
@@ -148,7 +149,7 @@ void setup() {
   Serial.println(stepNumber);
   Serial.println("Notes: ");
     Serial.println(notes);
-  Serial.println("Box1");
+  Serial.println("M2");
   Serial.print("Allow responses during stim? ");
   if (stimResp) {
     Serial.println("True"); //Print a blank line at the start of each trial
@@ -174,7 +175,8 @@ void loop()  { //START MAIN LOOP
     if (poleIn == 0) {
       moveSteppersForward(3, rewType); //Move upper stim forward to adjust postitions
       poleIn = 1;
-      delay(15000);
+      delay(20000);
+      //delay(15000);
     }
   }
 
@@ -592,7 +594,7 @@ void readTouchInputs() {
   //Serial.println(lickVal - lastLick);
 
   if (lickState == 0) { //if not already licking
-    if (lickVal - lastLick > 900) {
+    if (lickVal - lastLick > lickthresh) {
       Serial.print("Lick!: ");
       lickTime = millis();
       Serial.println(lickTime);
@@ -601,7 +603,7 @@ void readTouchInputs() {
   }
 
   if (lickState == 1) { //if already licking
-    if (lickVal - lastLick < -900) {
+    if (lickVal - lastLick < lowlickthresh) {
       lickState = 0;
     }
   }

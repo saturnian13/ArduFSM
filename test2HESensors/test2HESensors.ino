@@ -8,7 +8,7 @@ int HEval2=0;
 void setup() {
   pinMode(HEsensor1, INPUT);
   pinMode(HEsensor2, INPUT);
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
 
 void loop() {

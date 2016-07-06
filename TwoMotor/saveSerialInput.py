@@ -53,7 +53,7 @@ try:
     ser = serial.Serial(serial_port, baud_rate, timeout=0.1)
     sio = io.TextIOWrapper(io.BufferedRWPair(ser,ser))
     f1 = datetime.datetime.now().strftime('%Y%m%d%H%M%S');
-    fname = f1 + '_' + rigname + '_' + mouse_name + '.log';
+    fname = f1 + '_' + mouse_name + '.log';
     fpath = './logfiles/' + fname;
     text_file = open(fpath, "w")
     while True:

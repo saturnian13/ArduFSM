@@ -1,20 +1,20 @@
 //This version is set for the modular behavior setups
 
 // VARIABLES TO CHECK FIRST!
-boolean stimResp = true; //determines whether responses are counted during the stim period
+boolean stimResp = false;//true; //determines whether responses are counted during the stim period
 const int stimDur = 1500;
-const int respDur = 500; //1500;
+const int respDur = 1500; //1500;
 const int solTime = 40; //time soleniod valve is open for delivery of water; controls how much water comes out each time
-const int punTime = 5000; //time in msec of timeout for unrewarded licks
-const int rewType = 1; //Determines whether top stimulus is rewarded (= 1) or bottom stimulus is rewarded (= 2)
-const int iti = 500; //3000;
+const int punTime = 6000; //5500 //time in msec of timeout for unrewarded licks
+const int rewType = 2; //Determines whether top stimulus is rewarded (= 1) or bottom stimulus is rewarded (= 2)
+const int iti = 2500;//1000;//500;
 
 
 // Initialize STEPPER library info
 #include <Stepper.h>
 
-String programName = "twomotor_M1_mTESTING";
-String notes = "training - short trials and responses on st prd ";
+String programName = "twomotor_M1_mpm03-1";
+String notes = " ";
 
 //Trial variables
 long trialstart = 0;
@@ -148,7 +148,7 @@ void setup() {
   Serial.println(stepNumber);
   Serial.println("Notes: ");
     Serial.println(notes);
-  Serial.println("Box1");
+  Serial.println("M1");
   Serial.print("Allow responses during stim? ");
   if (stimResp) {
     Serial.println("True"); //Print a blank line at the start of each trial
@@ -174,7 +174,7 @@ void loop()  { //START MAIN LOOP
     if (poleIn == 0) {
       moveSteppersForward(3, rewType); //Move upper stim forward to adjust postitions
       poleIn = 1;
-      delay(15000);
+      delay(20000);
     }
   }
 
