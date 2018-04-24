@@ -46,10 +46,10 @@ elif rigname == 'L0':
     trial_types = mainloop.get_trial_types('trial_types_3srvpos_r')
     reverse_srvpos = True
 elif rigname == 'L4':
-    trial_types = mainloop.get_trial_types('trial_types_4stppos')
+    trial_types = mainloop.get_trial_types('trial_types_2shapes')
     reverse_srvpos = False    
 elif rigname == 'L5':
-    trial_types = mainloop.get_trial_types('trial_types_4stppos')
+    trial_types = mainloop.get_trial_types('trial_type_2stppos_pole')
     reverse_srvpos = False  
 else:
     trial_types = mainloop.get_trial_types('trial_types_3srvpos')
