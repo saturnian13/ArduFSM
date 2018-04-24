@@ -58,6 +58,8 @@ long default_results_values[N_TRIAL_RESULTS] = {0, 0};
 // Global, persistent variable to remember where the stepper is
 long sticky_stepper_position = 0;
 
+//global variable to remember rotation direction
+int rotate_dir = 0;
 
 //// State definitions
 extern Stepper* stimStepper;
@@ -138,6 +140,12 @@ void StateResponseWindow::s_finish()
   }
   
   //rotate(25);
+  if (rotate_dir==0) {//was rotating in neg dir, now rotate pos dir
+    rotate(25); //rotate into gap between stimuli (so CS removed)
+  }
+  else {
+    rotate(-25);
+  }
   
   // Send to reward state if this was a rewarded trial
   if (param_values[tpidx_REWSIDE] == LEFT) {
@@ -205,7 +213,7 @@ void StateWaitForServoMove::s_finish()
 //// Inter-trial interval
 void StateInterTrialInterval::s_setup()
 {
-  rotate(25); //rotate into gap between stimuli (so CS removed)
+
  
   // First-time code: Report results
   for(int i=0; i < N_TRIAL_RESULTS; i++)
@@ -267,25 +275,37 @@ int state_rotate_stepper2(STATE_TYPE& next_state)
   // For instance, to go from 0 to 150, it's better to go -50
   //if (remaining_rotation > 100)
   //  remaining_rotation -= 200;
-  
+  if ((param_values[tpidx_STPPOS]!=25) && (param_values[tpidx_STPPOS]!=75))
+  {
   // First ensure that remaining rotation is positive
-  if (remaining_rotation < 0) {
-    remaining_rotation += 200;
-  }
+    if (remaining_rotation < 0) {
+      remaining_rotation += 200;
+    }
   
-  // Now flip a coin and rotate the other direction 50% of the time
-  if (random(0, 2) == 0) {
-    remaining_rotation -= 200;
-  }
-  
-  // If not rotating at all, rotate a full circle
-  if (remaining_rotation == 0) {
+    // Now flip a coin and rotate the other direction 50% of the time
     if (random(0, 2) == 0) {
-      remaining_rotation = 200;
+      remaining_rotation -= 200;
+	  
     }
-    else {
-      remaining_rotation = -200;
+  
+    // If not rotating at all, rotate a full circle
+    if (remaining_rotation == 0) {
+      if (random(0, 2) == 0) {
+        remaining_rotation = 200;
+
+      }
+      else {
+        remaining_rotation = -200;
+
+      }
     }
+  }
+  //now remember the direction of rotation. 
+  if (remaining_rotation < 0) {//negative direction of rotation
+	rotate_dir = 0;
+  }
+  else {
+	rotate_dir = 1;
   }
   
   // convoluted way to determine step_size
@@ -346,7 +366,24 @@ int state_rotate_stepper2(STATE_TYPE& next_state)
   else
   {
     // This is the old rotation function
-    rotate(remaining_rotation);
+	// no magnets or sensor; just rotate
+	
+	//first to confuse mouse, rotate a random number of full circles (<=3) in same direction as the remaining rotation. 
+    //how many circles? 1, 2, or 3 circles
+	//int num_circles = random(1,4);
+	
+	//which direction to rotate?
+	//if (remaining_rotation <0) //neg direction
+	//{	//rotate num_circles (* 200steps in full circle) in neg direction
+	//	rotate(num_circles * (-200));
+	//}
+	//else //pos direction
+	//{	//rotate num_circles in pos direction
+	//	rotate(num_circles*200);		
+	//}
+	
+	//now keep rotating to get to final position 
+	rotate(remaining_rotation);
   }
   
   next_state = MOVE_SERVO;
