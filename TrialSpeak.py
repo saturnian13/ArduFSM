@@ -216,7 +216,7 @@ def get_trial_start_time(parsed_lines):
     elif len(rows) == 0:
         return None
     else:
-        return int(rows['time'].irow(0)) / 1000.
+        return int(rows['time'].iat[0]) / 1000.
     
 def get_trial_release_time(parsed_lines):
     """Returns the time of trial release in seconds"""
@@ -226,7 +226,7 @@ def get_trial_release_time(parsed_lines):
     elif len(rows) == 0:
         return None
     else:
-        return int(rows['time'].irow(0)) / 1000.
+        return int(rows['time'].iat[0]) / 1000.
 
 def get_trial_parameters(parsed_lines, command_string=trial_param_token):
     """Returns the value of trial parameters"""
@@ -264,97 +264,79 @@ def get_lick_times(spline, num):
         res.append(int(line.split()[0]) / 1000.)
     return np.array(res)
 
-def identify_state_change_time_old(splines, state0, state1):
-    """Return time that state changed from state0 to state1
+def identify_state_change_times(behavior_filename=None, logfile_df=None,
+    state0=None, state1=None,
+    error_on_multiple_changes=False, warn_on_multiple_changes=True, 
+    command='ST_CHG2'):
+    """Return time that state changed from state0 to state1 on each trial
     
-    for servo starting moving: 1 2
-    for resp win open: 3 4
+    behavior_filename : name of logfile.
+        Only used if logfile_df is not None
+    logfile_df : result of read_logfile_into_df
+    state0 : state before change
+        If None, can be any
+    state1 : state after change
+        If None, can be any
     
-    Returns: Series of times in s, indexed by the entry in splines
+    Uses read_logfile_into_df to read the file
+    and get_commands_from_parsed_lines to parse the lines
+    and then parses the states in the resulting dataframe.
+    
+    ST_CHG2 is used, because this is the time of the end of the last
+    call of the state before the change. ST_CHG gives you the time of the
+    start of that call.
+    
+    If multiple times are found for a trial, only the first is returned.
+    If no times are found for a trial, there will be no entry for that trial
+    in the returned data.
+    
+    Returns: pandas Series indexed by trial with the state change time
+        for each trial. The values will be a number of milliseconds
+        as an integer.
     """
-    res_l = []
-    idx_l = []
-    for nspline, spline in enumerate(splines):
-        # Find the state change line
-        match_lines = filter(
-            lambda line: 'ST_CHG %d %d' % (state0, state1) in line, spline)
-        
-        # There should be 1 hit, except in rare cases
-        if len(match_lines) == 1:
-            # Append result and nspline as index
-            res_l.append(int(match_lines[0].split()[0]))
-            idx_l.append(nspline)
-        elif len(match_lines) == 0:
-            # no state change found
-            # this is only okay on the most recent ("current") trial
-            if nspline != len(splines) - 1:
-                print "error: cannot find state change in non-last trial"
-        else:
-            # should never find multiple instances
-            raise ValueError("multiple state changes per spline")
+    # Get logfile_df
+    if logfile_df is None:
+        logfile_df = read_logfile_into_df(behavior_filename)
+    
+    # Get the state change times
+    state_change_cmds = get_commands_from_parsed_lines(
+        logfile_df, command)
+    
+    # Drop any from trial "-1"
+    state_change_cmds = state_change_cmds[state_change_cmds.trial != -1]
+    
+    # Get the ones corresponding to servo retract
+    state_change_cmds = my.pick_rows(state_change_cmds, 
+        arg0=state0, arg1=state1)
+    
+    # Group by trial
+    gobj = state_change_cmds.groupby('trial')
 
-    return pandas.Series(res_l, index=idx_l, dtype=np.float) / 1000.
+    # Error check
+    if (gobj.apply(len) != 1).any():
+        if error_on_multiple_changes:
+            raise ValueError("non-unique state change on some trials")
+        if warn_on_multiple_changes:
+            print "warning: non-unique state change on some trials"
+    
+    # Take the first from each trial
+    time_by_trial = gobj.first()
+    
+    return time_by_trial['time']
 
-def identify_state_change_times(parsed_df_by_trial, state0=None, state1=None,
-    show_warnings=True, error_on_multi=False, command='ST_CHG'):
-    """Return time that state changed from state0 to state1
+def identify_state_change_times_new(*args, **kwargs):
+    print ("warning: identify_state_change_times_new is deprecated, "
+        "use identify_state_change_times")
+    return identify_state_change_times(*args, **kwargs)
     
-    parsed_df_by_trial : result of parse_lines_into_df_split_by_trial
-        (May be more efficient to rewrite this to operate on the whole thing?)
-    state0 and state1 : any argument that pick_rows can work on, so
-        13 works or [13, 14] works
-    command : the state change token
-        ST_CHG2 uses the time at the end, instead of beginning, of the loop
-    
-    If multiple hits per trial found:
-        returns first one
-    
-    If no hits per trial found:
-        return nan
-    """
-    multi_warn_flag = False
-    res = []
-    
-    # Iterate over trials
-    for df in parsed_df_by_trial:
-        # Get st_chg commands
-        st_chg_rows = my.pick_rows(df, command=command)
-        
-        # Split the argument string and intify
-        if len(st_chg_rows) > 0:
-            split_arg = pandas.DataFrame(
-                st_chg_rows['argument'].str.split().tolist(),
-                dtype=np.int, columns=['state0', 'state1'],
-                index=st_chg_rows.index)
-            
-            # Match to state0, state1
-            picked = my.pick(split_arg, state0=state0, state1=state1)
-        else:
-            picked = []
-        
-        # Split on number of hits per trial
-        if len(picked) == 0:
-            res.append(np.nan)
-        elif len(picked) == 1:
-            res.append(df['time'][picked[0]])
-        else:
-            res.append(df['time'][picked[0]])
-            multi_warn_flag = True
-            if error_on_multi:
-                raise(ValueError("multiple events on this trial"))
-    
-    if show_warnings and multi_warn_flag:
-        print "warning: multiple target state changes found on some trial"
-    
-    return np.array(res, dtype=np.float) / 1000.0
-
-def identify_servo_retract_times(parsed_df_by_trial):
+def identify_servo_retract_times(behavior_filename):
     """Identify transition to 13 or 14.
     
     On error trials we get one of each, so take the first one
     """
-    return identify_state_change_times(parsed_df_by_trial, None, [13, 14], 
-        show_warnings=False)
+    return identify_state_change_times(behavior_filename, 
+        state0=None, state1=[13, 14], 
+        error_on_multi=False)
 
 ## Writing functions
 def command_set_parameter(param_name, param_value):
@@ -535,6 +517,9 @@ def make_trials_matrix_from_logfile_lines2(logfile_lines,
             ordered_cols.append(col)
     res = res[ordered_cols]
     
+    # Avoid SettingWithCopyWarning below
+    res = res.copy()
+    
     # Insert always_insert
     for col in always_insert:
         if col not in res:
@@ -546,7 +531,8 @@ def make_trials_matrix_from_logfile_lines2(logfile_lines,
     return res
 
 
-def read_logfile_into_df(logfile, nargs=4, add_trial_column=True):
+def read_logfile_into_df(logfile, nargs=4, add_trial_column=True,
+    unsorted_times_action='warn'):
     """Read logfile into a DataFrame
     
     Each line in the file will be a row in the data frame.
@@ -559,6 +545,11 @@ def read_logfile_into_df(logfile, nargs=4, add_trial_column=True):
         with None.
     add_trial_column : optionally add a column for the trial number of 
         each line. Lines before the first trial begins have trial number -1.
+    
+    unsorted_times_action : 'ignore', 'warn', 'error'
+        The times "should" be sorted but frequently aren't.
+        This is always the case for some commands, and less frequently
+        the case when the first digit seems to have been dropped.
     
     The dtype will always be int for the time column and object (ie, string)
     for every other column. This is to ensure consistency. You may want
@@ -580,6 +571,16 @@ def read_logfile_into_df(logfile, nargs=4, add_trial_column=True):
     if not np.all(rdf.columns == all_cols):
         raise IOError("cannot read columns correctly from logfile")
     
+    # Convert time to integer and drop malformed lines
+    #new_time = rdf['time'].convert_objects(convert_numeric=True)
+    new_time = pandas.to_numeric(rdf['time'], errors='coerce')
+    if new_time.isnull().any():
+        print "warning: malformed time string at line(s) %r" % (
+            new_time.index[new_time.isnull()].values)
+    rdf['time'] = new_time
+    rdf = rdf.ix[~rdf['time'].isnull()]
+    rdf['time'] = rdf['time'].astype(np.int)
+    
     # Convert dtypes. We have to do it here, because if done during reading
     # it will crash on mal-formed dtypes. Could catch that error and then
     # run this...
@@ -589,7 +590,7 @@ def read_logfile_into_df(logfile, nargs=4, add_trial_column=True):
         try:
             rdf[col] = rdf[col].astype(dtyp)
         except ValueError:
-            print "warning: cannot coerce %s to %r" % (col, dtyp)
+            raise IOError("cannot coerce %s to %r" % (col, dtyp))
     
     # Join on trial number
     if add_trial_column:
@@ -602,6 +603,34 @@ def read_logfile_into_df(logfile, nargs=4, add_trial_column=True):
             # Use side = 'right' to place TRL_START itself correctly
             rdf['trial'] = np.searchsorted(np.asarray(trl_start_idxs), 
                 np.asarray(rdf.index), side='right') - 1        
+    
+    # Error check
+    # Very commonly the ACK TRL_RELEASED, SENH, AAR_L, and AAR_R commands
+    # are out of order. So ignore this for now.
+    # Somewhat commonly, there is a missing first digit of the time, for
+    # some reason.
+    rrdf = rdf[
+        ~rdf.command.isin(['DBG', 'ACK', 'SENH']) &
+        ~rdf.arg0.isin(['AAR_L', 'AAR_R'])
+        ]
+    unsorted_times = rrdf['time'].values
+    bad_args = np.where(np.diff(unsorted_times) < 0)[0]
+    if len(bad_args) > 0:
+        first_bad_arg = bad_args[0]
+        pre_bad_arg = np.max([first_bad_arg - 2, 0])
+        post_bad_arg = np.min([first_bad_arg + 2, len(rrdf)])
+        bad_rows = rrdf.ix[rrdf.index[pre_bad_arg]:rrdf.index[post_bad_arg]]
+        error_string = "unsorted times in logfile %s, starting at line %d" % (
+            logfile, bad_args[0])
+
+        if unsorted_times_action == 'warn':
+            print error_string
+        elif unsorted_times_action == 'error':
+            raise ValueError(error_string)
+        elif unsorted_times_action == 'ignore':
+            pass
+        else:
+            raise ValueError("unknown action for unsorted times")
     
     return rdf
     

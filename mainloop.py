@@ -53,12 +53,12 @@ def get_params_table():
         ('RD_L',    MD,       0, 0, 1, 1, 1),
         ('RD_R',    MD,       0, 0, 1, 1, 1),
         ('ITI',     50,       0, 0, 1, 0, 1),
-        ('PSW',     1,        0, 0, 1, 0, 0),
-        ('TO',      6000,     0, 0, 1, 0, 1),       
+        ('PSW',     1,        0, 0, 0, 0, 0),
+        ('TO',      9000,     0, 0, 1, 0, 1),       
         ('TOE',     YES,      0, 0, 1, 0, 1),
         ('MRT',     1,        0, 0, 1, 0, 1),
         ('STPSPD',  MD,       0, 0, 0, 1, 1),
-        ('STPFR',   50,       0, 0, 0, 1, 0),
+        ('STPFR',   50,      0, 0, 0, 1, 1),
         ('2PSTP',   MD,       0, 0, 0, 1, 1),
         ('SRVST',   1000,     0, 0, 0, 1, 0),
         ('STPIP',   50,       0, 0, 0, 1, 1),
@@ -70,6 +70,8 @@ def get_params_table():
         ('RELT',    6,        0, 0, 1, 1, 1),
         ('STPHAL',  MD,       0, 0, 0, 1, 1),
         ('HALPOS',  MD,       0, 0, 0, 1, 1),
+        ('DIRDEL',  NO,       1, 1, 0, 0, 0),
+        ('OPTO',    NO,       1, 1, 0, 0, 0),
         ],
         columns=('name', 'init_val', 'required_ET', 'reported_ET', 
             'ui-accessible', 'rig-dependent', 'send_on_init'),
@@ -144,10 +146,6 @@ def get_params_table_passive_detect():
 def get_serial_port(rigname):
     """Get the serial port for the specified rigname"""
     d = {
-        'L0': '/dev/ttyACM0',
-        'L1': '/dev/ttyACM0', 
-        'L2': '/dev/ttyACM1', 
-        'L3': '/dev/ttyACM2', 
         'L4': '/dev/ttyACM0',        
         'L5': '/dev/ttyACM1',
         }
@@ -162,51 +160,6 @@ def get_rig_specific(rigname):
     
     Currently hard coded but should probably be read from disk.
     """
-    if rigname == 'L0':
-        return {
-            'STPSPD': 30,
-            '2PSTP': YES,
-            'SRVFAR' : 1100,
-            'SRVTT': 2000,
-            'RD_L': 19,
-            'RD_R': 43,
-            'STPHAL': NO,
-            'HALPOS': 50,
-            }
-    
-    elif rigname == 'L1':
-        return {
-            'STPSPD': 30,
-            '2PSTP': NO,
-            'SRVTT': 2000,
-            'RD_L': 60,
-            'RD_R': 31,
-            'STPHAL': YES,
-            'HALPOS': 150,
-            }
-    
-    elif rigname == 'L2':
-        return {
-            'STPSPD': 30,
-            '2PSTP': NO,
-            'SRVTT': 2000,
-            'RD_L': 20,
-            'RD_R': 16,
-            'STPHAL': YES,
-            'HALPOS': 50,
-            }
-    
-    elif rigname == 'L3':
-        return {
-            'STPSPD': 30,
-            '2PSTP': YES,
-            'SRVTT': 2000,
-            'RD_L': 16,
-            'RD_R': 25,
-            'STPHAL': YES,
-            'HALPOS': 50,
-            }  
-
     elif rigname == 'L4':
         return {
             'STPSPD': 30,
@@ -233,19 +186,7 @@ def get_rig_specific(rigname):
             'RWIN': 2000,
             'ITI': 4000,
             }
-            
-    elif rigname == 'GA1':
-        return {
-            'STPSPD': 30,
-            '2PSTP': YES,
-            'SRVFAR' : 1100,
-            'SRVTT': 2000,
-            'RD_L': 19,
-            'RD_R': 43,
-            'STPHAL': NO,
-            'HALPOS': 50,
-            }
-    
+
     else:
         raise ValueError("cannot find rig-specific for %s" % rigname)
 
@@ -264,25 +205,7 @@ def get_rig_specific_passive_detect(rigname):
 def get_rig_specific_licktrain(rigname):
     """Return a dict of params for each rig for licktrain.
     """
-    if rigname == 'L1':
-        return {
-            'RD_L': 60,
-            'RD_R': 31,
-            }
-    
-    elif rigname == 'L2':
-        return {
-            'RD_L': 20,
-            'RD_R': 16,
-            }
-    
-    elif rigname == 'L3':
-        return {
-            'RD_L': 16,
-            'RD_R': 25,
-            }  
-
-    elif rigname == 'L4':
+    if rigname == 'L4':
         return {
             'RD_L': 30,
             'RD_R': 30,
@@ -294,12 +217,6 @@ def get_rig_specific_licktrain(rigname):
             'RD_R': 30,
             }  
             
-    elif rigname == 'GA1':
-        return {
-            'RD_L': 30,
-            'RD_R': 30,
-        }
-    
     else:
         raise ValueError("cannot find rig-specific for %s" % rigname)
 

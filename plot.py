@@ -88,11 +88,13 @@ class Plotter(object):
         self.cached_anova_len1 = 0
         self.cached_anova_text2 = ''
         self.cached_anova_len2 = 0       
+        self.cached_anova_text3 = ''
+        self.cached_anova_len3 = 0
     
     def init_handles(self):
         """Create graphics handles"""
         # Plot 
-        f, ax = plt.subplots(1, 1, figsize=(11, 3))
+        f, ax = plt.subplots(1, 1, figsize=(9, 2.15))
         f.subplots_adjust(left=.45, right=.95, top=.75)
         
         # Make handles to each outcome
@@ -197,6 +199,8 @@ class Plotter(object):
         if 'rewside' in translated_trial_matrix.columns:
             title_string += '\n' + self.form_string_all_trials_perf(
                 translated_trial_matrix)
+            title_string += '\n' + self.form_string_recent_trials_perf(
+                translated_trial_matrix)
             title_string += '\n' + self.form_string_unforced_trials_perf(
                 translated_trial_matrix)
 
@@ -248,7 +252,7 @@ class Plotter(object):
         
         ## PLOTTING finalize
         plt.show()
-        plt.draw()    
+        plt.draw()
 
     def form_string_rewards(self, splines, translated_trial_matrix):
         """Form a string with the number of rewards on each side"""
@@ -284,6 +288,27 @@ class Plotter(object):
             anova_stats = self.cached_anova_text2
         
         return 'All: ' + string_perf_by_side + '. Biases: ' + anova_stats
+
+    def form_string_recent_trials_perf(self, translated_trial_matrix):
+        """Form a string with side perf and anova for recent trials
+        
+        cached in cached_anova_text3 and cached_anova_len3
+        """
+        side2perf = count_hits_by_type_from_trials_info(
+            translated_trial_matrix.iloc[-60:], split_key='rewside')     
+        
+        string_perf_by_side = self.form_string_perf_by_side(side2perf)
+        
+        if len(translated_trial_matrix) > self.cached_anova_len3 or self.cached_anova_text3 == '':
+            numericated_trial_matrix = TrialMatrix.numericate_trial_matrix(
+                translated_trial_matrix.iloc[-60:])
+            anova_stats = TrialMatrix.run_anova(numericated_trial_matrix)
+            self.cached_anova_text3 = anova_stats
+            self.cached_anova_len3 = len(translated_trial_matrix)
+        else:
+            anova_stats = self.cached_anova_text3
+        
+        return 'Recent: ' + string_perf_by_side + '. Biases: ' + anova_stats
     
     def form_string_unforced_trials_perf(self, translated_trial_matrix):
         """Exactly the same as form_string_all_trials_perf, except that:
@@ -301,10 +326,10 @@ class Plotter(object):
             numericated_trial_matrix = TrialMatrix.numericate_trial_matrix(
                 translated_trial_matrix[~translated_trial_matrix.bad])
             anova_stats = TrialMatrix.run_anova(numericated_trial_matrix)
-            self.cached_anova_text2 = anova_stats
-            self.cached_anova_len2 = len(translated_trial_matrix)
+            self.cached_anova_text1 = anova_stats
+            self.cached_anova_len1 = len(translated_trial_matrix)
         else:
-            anova_stats = self.cached_anova_text2
+            anova_stats = self.cached_anova_text1
         
         return 'UF: ' + string_perf_by_side + '. Biases: ' + anova_stats        
 
@@ -392,6 +417,169 @@ class PlotterByStimNumber(Plotter):
             res.append(side + ' %d' % sn)        
         return res
 
+class SensorPlotter():
+    """Plots sensor values by step"""
+    def __init__(self):
+        self.handles = {}
+    
+    def init_handles(self):
+        self.handles['f'], self.handles['ax'] = plt.subplots()
+
+    def update(self, logfile_lines):
+        """Update plot with new sensor values"""
+        # Extract sensor values from each SENH line
+        rec_l = []
+        senh_lines = filter(lambda l: ' SENH ' in l, logfile_lines)
+        for line in senh_lines:
+            post_senh_text = line.split(' SENH ')[1]
+            sensor_history = post_senh_text.split()
+            rec_l.append(map(int, sensor_history))
+
+        # Plot each
+        for line in self.handles['ax'].lines:
+            line.remove()
+        for rec in rec_l:
+            self.handles['ax'].plot(rec)
+
+class LickPlotter():
+    """Plots licks by time"""
+    def __init__(self):
+        self.handles = {}
+    
+    def init_handles(self):
+        self.handles['f'], self.handles['axa'] = plt.subplots(2, 1,
+            figsize=(3, 6))
+        self.handles['l_c'], = self.handles['axa'][0].plot([], [], color='b')
+        self.handles['l_m'], = self.handles['axa'][0].plot([], [], color='g')
+        self.handles['l_x'], = self.handles['axa'][0].plot([], [], color='r')
+        self.handles['l_tch'], = self.handles['axa'][0].plot([], [], 
+            color='b', marker='.', ls='none')
+        self.handles['l_tch3'], = self.handles['axa'][0].plot([], [], 
+            color='k', marker='.', ls='none')
+
+        self.handles['r_c'], = self.handles['axa'][1].plot([], [], color='b')
+        self.handles['r_m'], = self.handles['axa'][1].plot([], [], color='g')
+        self.handles['r_x'], = self.handles['axa'][1].plot([], [], color='r')
+        self.handles['r_tch'], = self.handles['axa'][1].plot([], [], 
+            color='r', marker='.', ls='none')
+        self.handles['r_tch3'], = self.handles['axa'][1].plot([], [], 
+            color='k', marker='.', ls='none')
+        
+        self.handles['f'].subplots_adjust(left=.2)
+        
+        self.handles['axa'][0].grid()
+        self.handles['axa'][1].grid()
+
+        # Try to move, this is backend-dependent
+        try:
+            self.handles['f'].canvas.manager.window.wm_geometry("+600+500")
+        except AttributeError:
+            print "cannot move window"
+
+        plt.show()
+    
+    def update(self, logfile_lines):
+        # Extract licks
+        l_rec_l = []
+        lick_lines = filter(lambda l: 'DBG L:' in l, logfile_lines)
+        for line in lick_lines:
+            c, m, x = line.split('=')[1:4]
+            c = int(c.split(';')[0])
+            m = int(m.split(';')[0])    
+            x = int(x.split('.')[0])
+            l_rec_l.append({'c': c, 'm': m, 'x': x, 
+                'time': int(line.split(' ')[0]) / 1000.})
+        try:
+            l_resdf = pandas.DataFrame.from_records(l_rec_l).set_index('time')
+        except KeyError:
+            l_resdf = None
+
+        # Extract licks
+        r_rec_l = []
+        lick_lines = filter(lambda l: 'DBG R:' in l, logfile_lines)
+        for line in lick_lines:
+            c, m, x = line.split('=')[1:4]
+            c = int(c.split(';')[0])
+            m = int(m.split(';')[0])    
+            x = int(x.split('.')[0])
+            r_rec_l.append({'c': c, 'm': m, 'x': x, 
+                'time': int(line.split(' ')[0]) / 1000.})
+        try:
+            r_resdf = pandas.DataFrame.from_records(r_rec_l).set_index('time')
+        except KeyError:
+            r_resdf = None
+
+        # Extact touches
+        tch_rec_l = []
+        lick_lines = filter(lambda l: 'TCH' in l, logfile_lines)
+        for line in lick_lines:
+            tch_type = int(line.split()[2])
+            if tch_type == 0:
+                continue
+            else:
+                tch_rec_l.append({'time': int(line.split()[0]) / 1000., 
+                    'tch': tch_type})
+        try:
+            tch_resdf = pandas.DataFrame.from_records(tch_rec_l).set_index('time')
+        except KeyError:
+            tch_resdf = None
+
+        # Plot left values
+        if l_resdf is not None:
+            self.handles['l_m'].set_xdata(l_resdf.index)
+            self.handles['l_m'].set_ydata(l_resdf['m'])
+            self.handles['l_c'].set_xdata(l_resdf.index)
+            self.handles['l_c'].set_ydata(l_resdf['c'])
+            self.handles['l_x'].set_xdata(l_resdf.index)
+            self.handles['l_x'].set_ydata(l_resdf['x'])
+            self.handles['axa'][0].set_xlim(
+                (l_resdf.index.max() - 10, l_resdf.index.max()))
+            #self.handles['axa'][0].set_ylim((0, 1024))
+            self.handles['axa'][0].set_ylim((
+                l_resdf['x'].iloc[-1] - 400,
+                l_resdf['x'].iloc[-1] + 600))
+
+        # Plot left touches
+        if tch_resdf is not None:
+            yval = np.mean(self.handles['axa'][0].get_ylim())
+            msk = tch_resdf == 1
+            self.handles['l_tch'].set_xdata(tch_resdf[msk].dropna().index)
+            self.handles['l_tch'].set_ydata(
+                yval * np.ones_like(tch_resdf[msk].dropna().values))
+            #~ msk = tch_resdf == 3
+            #~ self.handles['l_tch3'].set_xdata(tch_resdf[msk].dropna().index)
+            #~ self.handles['l_tch3'].set_ydata(
+                #~ 100 * np.ones_like(tch_resdf[msk].dropna().values))
+
+        # Plot right values
+        if r_resdf is not None:
+            self.handles['r_m'].set_xdata(r_resdf.index)
+            self.handles['r_m'].set_ydata(r_resdf['m'])
+            self.handles['r_c'].set_xdata(r_resdf.index)
+            self.handles['r_c'].set_ydata(r_resdf['c'])
+            self.handles['r_x'].set_xdata(r_resdf.index)
+            self.handles['r_x'].set_ydata(r_resdf['x'])
+            self.handles['axa'][1].set_xlim(
+                (r_resdf.index.max() - 10, r_resdf.index.max()))
+            #self.handles['axa'][1].set_ylim((0, 1024))
+            self.handles['axa'][1].set_ylim((
+                r_resdf.loc[r_resdf.index[-1], 'x'] - 400,
+                r_resdf.loc[r_resdf.index[-1], 'x'] + 600))
+
+        # Plot right touches
+        if tch_resdf is not None:
+            yval = np.mean(self.handles['axa'][1].get_ylim())
+            msk = tch_resdf == 2
+            self.handles['r_tch'].set_xdata(tch_resdf[msk].dropna().index)
+            self.handles['r_tch'].set_ydata(
+                yval * np.ones_like(tch_resdf[msk].dropna().values))
+            #~ msk = tch_resdf == 3
+            #~ self.handles['r_tch3'].set_xdata(tch_resdf[msk].dropna().index)
+            #~ self.handles['r_tch3'].set_ydata(
+                #~ 100 * np.ones_like(tch_resdf[msk].dropna().values))
+        
+        #~ plt.show()
+        #~ plt.draw()
 
 class PlotterWithServoThrow(Plotter):
     """Object encapsulating the logic and parameters to plot trials by throw."""

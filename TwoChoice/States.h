@@ -16,6 +16,7 @@ into States.cpp.
 #ifndef __STATES_H_INCLUDED__
 #define __STATES_H_INCLUDED__
 
+#include "hwconstants.h"
 #include "TimedState.h"
 #include <Servo.h>
 
@@ -52,7 +53,7 @@ into States.cpp.
 // And we can argue about how these two categories map onto the categories above.
 //
 // Attempt to have 0 be the "error value" since it cannot intentially be set to 0.
-#define N_TRIAL_PARAMS 24
+#define N_TRIAL_PARAMS 26
 #define tpidx_STPPOS 0 // reqd
 #define tpidx_MRT 1 // latch
 #define tpidx_REWSIDE 2 // reqd
@@ -77,6 +78,8 @@ into States.cpp.
 #define tpidx_REL_THRESH 21 // init-only
 #define tpidx_STP_HALL 22
 #define tpidx_STP_POSITIVE_STPPOS 23 
+#define tpidx_DIRECT_DELIVERY 24
+#define tpidx_OPTO 25
 
 //// Global trial results structure. Can be set by user-defined states. 
 // Will be reported during mandatory INTER_TRIAL_INTERVAL state.
@@ -95,6 +98,9 @@ into States.cpp.
 #define OUTCOME_HIT 1
 #define OUTCOME_ERROR 2
 #define OUTCOME_SPOIL 3
+
+//// Flag for an oracle responder, which always responds correctly
+//#define __STATES_H_ORACLE_RESPONDER
 
 //// States
 // Defines the finite state machine for this protocol
@@ -122,7 +128,12 @@ enum STATE_TYPE
 
 // Declare utility functions
 int rotate(long n_steps);
-int rotate_to_sensor(int step_size, bool positive_peak, long set_position);
+int rotate_to_sensor(int step_size, bool positive_peak, long set_position,
+  int hall_sensor_id);
+
+#ifdef __HWCONSTANTS_H_USE_STEPPER_DRIVER
+void rotate_one_step();
+#endif
 
 // Declare non-class states
 int state_inter_rotation_pause(unsigned long time, long state_duration,
@@ -179,6 +190,7 @@ class StateErrorTimeout : public TimedState {
     Servo my_linServo;
   
     void s_setup();
+    void loop();
     void s_finish();
   
   public:
@@ -190,11 +202,17 @@ class StateErrorTimeout : public TimedState {
 class StateWaitForServoMove : public TimedState {
   protected:
     Servo my_linServo;
+<<<<<<< HEAD
+=======
+    bool direct_delivery_delivered = 0;
+    unsigned long my_time_of_last_touch = 0;
+  
+>>>>>>> upstream/master
     void s_setup();
     void s_finish();
   
   public:
-    void update(Servo linServo);
+    void update(Servo linServo, unsigned long time_of_last_touch);
     StateWaitForServoMove(unsigned long d) : TimedState(d) { };
 };
 

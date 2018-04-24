@@ -50,28 +50,43 @@ class UIActionTaker:
         self.chatter.queued_write_to_device('ACT THRESH')
 
     def ui_action_save(self):
-        """Asks for mouse name and saves"""
-        # chatter should store this attribute more transparently
-        filename = self.chatter.ofi.name
+        """No longer does anything because this is now handled by TwoChoice.py
         
-        # Get mouse name
-        mousename = self.ui.get_additional_input("Enter mouse name: ")
-        mousename = mousename.strip()
+        Used to: ask for mouse name and save
+        """
+        raise QuitException("quitting")
         
-        # Copy the file
-        if mousename != '':
-            new_filename = filename + '.' + mousename
-            assert not os.path.exists(new_filename)
-            shutil.copyfile(filename, new_filename)  
-            raise QuitException("saved as %s" % new_filename)            
-        else:
-            # Quit
-            raise QuitException("quitting without saving %s" % filename)
+        #~ # chatter should store this attribute more transparently
+        #~ filename = self.chatter.ofi.name
+        
+        #~ # Get mouse name
+        #~ mousename = self.ui.get_additional_input("Enter mouse name: ")
+        #~ mousename = mousename.strip()
+        
+        #~ # Copy the file
+        #~ if mousename != '':
+            #~ new_filename = filename + '.' + mousename
+            #~ assert not os.path.exists(new_filename)
+            #~ shutil.copyfile(filename, new_filename)  
+            #~ raise QuitException("saved as %s" % new_filename)            
+        #~ else:
+            #~ # Quit
+            #~ raise QuitException("quitting without saving %s" % filename)
     
     def set_param(self):
-        # Get name and value
-        param_name = self.ui.get_additional_input("Enter param name: ").strip().upper()
-        param_value = self.ui.get_additional_input("Enter param value: ").strip()
+        # Get param name
+        # Some weird issue where the param name is sometimes received as
+        # a new line the first time, even though subsequent times are fine
+        # So we loop till it's not blank
+        param_name = ''
+        while param_name == '':
+            param_name = self.ui.get_additional_input(
+                "Enter param name, or 'oops' to abort: ").strip().upper()
+        if param_name == 'OOPS':
+            return
+        
+        param_value = self.ui.get_additional_input(
+            "Enter value for param %s: " % param_name).strip()
         
         # simple error check for empty param
         # what if it is a non-int string?
@@ -137,9 +152,15 @@ class UIActionTaker:
             **kwargs)        
 
 
-class UI:
-    def __init__(self, chatter, logfilename, ts_obj, timeout=1000):
+class UI(object):
+    def __init__(self, chatter, logfilename, ts_obj, timeout=1000, banner=None):
         """Create new UI object.
+        
+        chatter : chatter object
+        logfilename : log file 
+        ts_obj : Trial Setter object
+        timeout : time between updates
+        banner : text that will be displayed on the top line
         
         Actions are taken by directly modifying params and scheduler
         within ts_obj.
@@ -148,6 +169,7 @@ class UI:
         self.logfilename = logfilename
         self.ts_obj = ts_obj
         self.timeout = timeout
+        self.banner = banner
 
         # Create default positioning tables
         self.element_row = {
@@ -350,8 +372,14 @@ class UI:
     
     def write_banner(self):
         """Write a simple banner at the top"""
-        s = "Behavior control UI. Port: %s. Logfile: %s." % (
-            self.chatter.ser.port, self.logfilename)
+        if self.banner is None:
+            s = "Port: %s. Logfile: %s." % (
+                self.chatter.ser.port, 
+                os.path.split(self.logfilename)[1]
+            )
+        else:
+            s = self.banner
+        
         self.stdscr.addstr(self.element_row['banner'], 0, s)
     
     def write_headings(self):
@@ -381,7 +409,7 @@ class UI:
         uparams = self.ts_obj.params_table[
             self.ts_obj.params_table['ui-accessible']]
         
-        for nparam, (name, value) in enumerate(uparams['current-value'].iterkv()):
+        for nparam, (name, value) in enumerate(uparams['current-value'].iteritems()):
             s = '%s = %s' % (name, str(value))
             self.stdscr.addstr(start_row + nparam, col, s)
     

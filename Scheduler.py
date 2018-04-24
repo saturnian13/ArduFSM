@@ -31,6 +31,11 @@ import my
 from TrialSpeak import YES, NO, HIT
 import TrialSpeak, TrialMatrix
 
+n_dd_trials = 4
+N_OPTO_TRIALS = 4 # if not OPTO_PERIODIC, uses a cutoff of 1/N on rand()
+OPTO_PERIODIC = False
+OPTO_FORCED = True
+
 class ForcedAlternation:
     def __init__(self, trial_types, **kwargs):
         self.name = 'forced alternation'
@@ -44,6 +49,8 @@ class ForcedAlternation:
         """Given trial matrix so far, generate params for next"""
         res = {}
         res['ISRND'] = NO
+        res['DIRDEL'] = TrialSpeak.NO
+        res['OPTO'] = NO
         
         if len(trial_matrix) == 0:
             # First trial, so pick at random from trial_types
@@ -58,17 +65,17 @@ class ForcedAlternation:
         else:    
             # Not the first trial
             # First check that the last trial hasn't been released
-            assert trial_matrix['release_time'].isnull().irow(-1)
+            assert trial_matrix['release_time'].isnull().iloc[-1]
             
             # But that it has been responded
-            assert not trial_matrix['choice'].isnull().irow(-1)
+            assert not trial_matrix['choice'].isnull().iloc[-1]
             
             # Set side to left by default, and otherwise forced alt
             if len(trial_matrix) < 2:
                 res['RWSD'] = 'left'
             else:
                 # Get last trial
-                last_trial = trial_matrix.irow(-1)
+                last_trial = trial_matrix.iloc[-1]
                 if last_trial['choice'] == last_trial['rewside']:
                     res['RWSD'] = {'left': 'right', 'right':'left'}[last_trial['rewside']]
                 else:
@@ -93,7 +100,27 @@ class ForcedAlternation:
             
             res['STPPOS'] = self.trial_types['stppos'][idx]
             res['SRVPOS'] = self.trial_types['srvpos'][idx]
-
+            
+            # if the last three trials were all forced this way, direct deliver
+            if len(trial_matrix) > n_dd_trials:
+                if (
+                    np.all(~trial_matrix['isrnd'].values[-n_dd_trials:]) and
+                    np.all(trial_matrix['rewside'].values[-n_dd_trials:] == res['RWSD']) and
+                    np.all(trial_matrix['outcome'].values[-n_dd_trials:] == 'error')):
+                    res['DIRDEL'] = TrialSpeak.YES
+            
+            # Only do opto on forced if requested
+            if OPTO_FORCED:
+                # Opto either periodic or random
+                if OPTO_PERIODIC: 
+                    # Every Nth trial exactly
+                    if np.mod(len(trial_matrix), N_OPTO_TRIALS) == (
+                        N_OPTO_TRIALS - 1):
+                        res['OPTO'] = YES
+                else:
+                    # With probability 1/N
+                    if np.random.rand() < (1. / N_OPTO_TRIALS):
+                        res['OPTO'] = YES
         
         # Untranslate the rewside
         # This should be done more consistently, eg, use real phrases above here
@@ -110,6 +137,78 @@ class ForcedAlternation:
         """Called when params for next trial are needed."""
         return self.generate_trial_params(trial_matrix)
 
+class ForcedAlternationGNG(ForcedAlternation):
+    """Forced Alternation scheduler for go nogo"""
+    def generate_trial_params(self, trial_matrix):
+        """Given trial matrix so far, generate params for next"""
+        res = {}
+        res['ISRND'] = NO
+        res['DIRDEL'] = TrialSpeak.NO
+        
+        if len(trial_matrix) == 0:
+            # First trial, so pick at random from trial_types
+            if hasattr(self, 'picked_trial_types'):
+                idx = self.trial_types.index[np.random.randint(0, len(self.picked_trial_types))]
+            else:
+                idx = self.trial_types.index[np.random.randint(0, len(self.trial_types))]
+            res['RWSD'] = self.trial_types['rewside'][idx]
+            res['STPPOS'] = self.trial_types['stppos'][idx]
+            res['SRVPOS'] = self.trial_types['srvpos'][idx]
+        
+        else:    
+            # Not the first trial
+            # First check that the last trial hasn't been released
+            assert trial_matrix['release_time'].isnull().iloc[-1]
+            
+            # But that it has been responded
+            assert not trial_matrix['choice'].isnull().iloc[-1]
+            
+            # Set side to left by default, and otherwise forced alt
+            if len(trial_matrix) < 2:
+                res['RWSD'] = 'right'
+            else:
+                # Get last trial
+                last_trial = trial_matrix.iloc[-1]
+                if last_trial['choice'] == last_trial['rewside']:
+                    res['RWSD'] = {'nogo': 'right', 'right':'nogo'}[last_trial['rewside']]
+                else:
+                    res['RWSD'] = last_trial['rewside']
+            
+            # Update the stored force dir
+            self.params['FD'] = res['RWSD']
+            
+            # ugly hack to get Session Starter working
+            if hasattr(self, 'picked_trial_types'):
+                # Choose from trials from the forced side
+                sub_trial_types = my.pick_rows(self.picked_trial_types, 
+                    rewside=res['RWSD'])
+                assert len(sub_trial_types) > 0                
+            else:
+                # Choose from trials from the forced side
+                sub_trial_types = my.pick_rows(self.trial_types, 
+                    rewside=res['RWSD'])
+                assert len(sub_trial_types) > 0
+            
+            idx = sub_trial_types.index[np.random.randint(0, len(sub_trial_types))]
+            
+            res['STPPOS'] = self.trial_types['stppos'][idx]
+            res['SRVPOS'] = self.trial_types['srvpos'][idx]
+            
+            # if the last three trials were all NOGO-on-GO errors, direct deliver
+            if len(trial_matrix) > n_dd_trials:
+                if (
+                    np.all(~trial_matrix['isrnd'].values[-n_dd_trials:]) and
+                    np.all(trial_matrix['rewside'].values[-n_dd_trials:] == 'right') and
+                    np.all(trial_matrix['outcome'].values[-n_dd_trials:] == 'spoil')):
+                    res['DIRDEL'] = TrialSpeak.YES
+
+        
+        # Untranslate the rewside
+        # This should be done more consistently, eg, use real phrases above here
+        # and only untranslate at this point.
+        res['RWSD'] = {'left': 1, 'right': 2, 'nogo': 3}[res['RWSD']]
+        
+        return res    
 
 class ForcedAlternationLickTrain:
     def __init__(self, trial_types, **kwargs):
@@ -131,17 +230,17 @@ class ForcedAlternationLickTrain:
         else:    
             # Not the first trial
             # First check that the last trial hasn't been released
-            assert trial_matrix['release_time'].isnull().irow(-1)
+            assert trial_matrix['release_time'].isnull().iloc[-1]
             
             # But that it has been responded
-            assert not trial_matrix['choice'].isnull().irow(-1)
+            assert not trial_matrix['choice'].isnull().iloc[-1]
             
             # Set side to left by default, and otherwise forced alt
             if len(trial_matrix) < 2:
                 res['RWSD'] = 'left'
             else:
                 # Get last trial
-                last_trial = trial_matrix.irow(-1)
+                last_trial = trial_matrix.iloc[-1]
                 if last_trial['outcome'] == 'hit':
                     res['RWSD'] = {'left': 'right', 'right':'left'}[last_trial['rewside']]
                 else:
@@ -200,6 +299,19 @@ class RandomStim:
         res['STPPOS'] = self.trial_types['stppos'][idx]
         res['SRVPOS'] = self.trial_types['srvpos'][idx]
         res['ISRND'] = YES
+        res['DIRDEL'] = TrialSpeak.NO
+        res['OPTO'] = NO
+
+        # Opto either periodic or random
+        if OPTO_PERIODIC: 
+            # Every Nth trial exactly
+            if np.mod(len(trial_matrix), N_OPTO_TRIALS) == (
+                N_OPTO_TRIALS - 1):
+                res['OPTO'] = YES
+        else:
+            # With probability 1/N
+            if np.random.rand() < (1. / N_OPTO_TRIALS):
+                res['OPTO'] = YES
         
         # Save current side for display
         self.params['side'] = res['RWSD']
@@ -300,6 +412,26 @@ class ForcedSide:
         res['STPPOS'] = self.trial_types['stppos'][idx]
         res['SRVPOS'] = self.trial_types['srvpos'][idx]
         res['ISRND'] = NO
+        res['DIRDEL'] = TrialSpeak.NO
+        res['OPTO'] = NO
+
+        # if the last three trials were all forced this way, direct deliver
+        if len(trial_matrix) > n_dd_trials:
+            force_on_2afc = (
+                np.all(~trial_matrix['isrnd'].values[-n_dd_trials:]) and
+                np.all(trial_matrix['rewside'].values[-n_dd_trials:] == res['RWSD']) and
+                np.all(trial_matrix['outcome'].values[-n_dd_trials:] == 'error'))
+            force_on_gng = (
+                np.all(~trial_matrix['isrnd'].values[-n_dd_trials:]) and
+                np.all(trial_matrix['rewside'].values[-n_dd_trials:] == 'right') and
+                np.all(trial_matrix['outcome'].values[-n_dd_trials:] == 'spoil'))
+                
+            if force_on_2afc or force_on_gng:
+                res['DIRDEL'] = TrialSpeak.YES
+        
+            # Opto on every Nth trial
+            if np.mod(len(trial_matrix), N_OPTO_TRIALS) == N_OPTO_TRIALS - 1:
+                res['OPTO'] = YES
             
         # Untranslate the rewside
         # This should be done more consistently, eg, use real phrases above here
@@ -358,14 +490,14 @@ class SessionStarterSrvMax(ForcedAlternation):
         # For simplicity, slice trial_types
         # Later, might want to reimplement the choosing rule instead
         lefts = my.pick_rows(self.trial_types, rewside='left')
-        closest_left = lefts.srvpos.argmax()
+        closest_left = lefts.srvpos.idxmax()
         
         rights = my.pick_rows(self.trial_types, rewside='right')
-        closest_right = rights.srvpos.argmax()
+        closest_right = rights.srvpos.idxmax()
         
         # Because we maintain the indices, plotter will work correctly
         # Not quite right, we don't currently use indices, but this is a TODO
-        self.picked_trial_types = self.trial_types.ix[
+        self.picked_trial_types = self.trial_types.loc[
             [closest_left, closest_right]].copy()
 
 class Auto:
@@ -374,7 +506,8 @@ class Auto:
     Always begins with SessionStarter, then goes random.
     Switches to forced alt automatically based on biases.
     """
-    def __init__(self, trial_types, debug=False, reverse_srvpos=False, **kwargs):
+    def __init__(self, trial_types, debug=False, reverse_srvpos=False, 
+        n_trials_forced_alt=None, **kwargs):
         self.name = 'auto'
         self.params = {
             'subsch': 'none',
@@ -403,15 +536,19 @@ class Auto:
             self.n_trials_sticky = 3
             self.n_trials_recent_win = 10
             self.n_trials_recent_random_thresh = 2
+            self.n_trials_recent_for_side_bias = 10
         else:
-            self.n_trials_session_starter = 8
+            self.n_trials_session_starter = 0
             self.n_trials_forced_alt = 45
             self.n_trials_sticky = 6
             self.n_trials_recent_win = 32
             self.n_trials_recent_random_thresh = 8
+            self.n_trials_recent_for_side_bias = 60
+        
+        if n_trials_forced_alt is not None:
+            self.n_trials_forced_alt = n_trials_forced_alt
         
         self.last_changed_trial = 0
-        
 
     def generate_trial_params(self, trial_matrix):
         # already translated
@@ -450,9 +587,11 @@ class Auto:
             self.params['status'] = 'randchk' + str(this_trial)       
             return
         
-        # Run the anova
+        # Run the anova on all trials (used for checking for stay bias)
         numericated_trial_matrix = TrialMatrix.numericate_trial_matrix(
             translated_trial_matrix)
+        #~ recent_ntm = numericated_trial_matrix.iloc[
+            #~ -self.n_trials_recent_for_side_bias:]
         aov_res = TrialMatrix._run_anova(numericated_trial_matrix)        
         if aov_res is None:
             self.current_sub_scheduler = self.sub_schedulers['RandomStim']
@@ -460,12 +599,16 @@ class Auto:
             self.params['status'] = 'an_none' + str(this_trial)
             return
         
+        # Also calculate the side bias in all recent trials
+        recent_ttm = translated_trial_matrix.iloc[
+            -self.n_trials_recent_for_side_bias:]
+        
         # Take the largest significant bias
         # Actually, better to take the diff of perf between sides for forced
         # side. Although this is a bigger issue than unexplainable variance
         # shouldn't be interpreted.
         side2perf_all = TrialMatrix.count_hits_by_type(
-            translated_trial_matrix, split_key='rewside')     
+            recent_ttm, split_key='rewside')     
         if 'left' in side2perf_all and 'right' in side2perf_all:
             lperf = side2perf_all['left'][0] / float(side2perf_all['left'][1])
             rperf = side2perf_all['right'][0] / float(side2perf_all['right'][1])

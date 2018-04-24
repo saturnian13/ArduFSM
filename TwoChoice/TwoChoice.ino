@@ -14,12 +14,23 @@ Here are the things that the user should have to change for each protocol:
 */
 #include "chat.h"
 #include "hwconstants.h"
-#include "mpr121.h"
-#include <Wire.h> // also for mpr121
 #include <Servo.h>
+
+#ifndef __HWCONSTANTS_H_USE_STEPPER_DRIVER
 #include <Stepper.h>
+#endif
+
 #include "TimedState.h"
 #include "States.h"
+
+#ifndef __HWCONSTANTS_H_USE_IR_DETECTOR
+#include "mpr121.h"
+#include <Wire.h> // also for mpr121
+#endif
+
+#ifdef __HWCONSTANTS_H_USE_IR_DETECTOR
+#include "ir_detector.h"
+#endif
 
 // Make this true to generate random responses for debugging
 #define FAKE_RESPONDER 0
@@ -58,7 +69,9 @@ Servo linServo;
 
 // Stepper
 // We won't assign till we know if it's 2pin or 4pin
+#ifndef __HWCONSTANTS_H_USE_STEPPER_DRIVER
 Stepper *stimStepper = 0;
+#endif
 
 //// Setup function
 void setup()
@@ -74,9 +87,11 @@ void setup()
   //// Put this in a user_setup1() function?
   
   // MPR121 touch sensor setup
+  #ifndef __HWCONSTANTS_H_USE_IR_DETECTOR
   pinMode(TOUCH_IRQ, INPUT);
   digitalWrite(TOUCH_IRQ, HIGH); //enable pullup resistor
   Wire.begin();
+  #endif
   
   // output pins
   pinMode(L_REWARD_VALVE, OUTPUT);
@@ -91,8 +106,55 @@ void setup()
 
   // attach servo
   linServo.attach(LINEAR_SERVO);
+  //linServo.write(1850); // move close for measuring
 
-  
+  // Set up stepper driver
+  #ifdef __HWCONSTANTS_H_USE_STEPPER_DRIVER
+  pinMode(__HWCONSTANTS_H_STEP_RESET, OUTPUT);
+  pinMode(__HWCONSTANTS_H_STEP_PIN, OUTPUT);
+  pinMode(__HWCONSTANTS_H_STEP_DIR, OUTPUT);
+
+  // Set directions
+  digitalWrite(__HWCONSTANTS_H_STEP_PIN, LOW);
+  digitalWrite(__HWCONSTANTS_H_STEP_DIR, LOW);  
+
+  // Reset the stepper driver to put it back into home position
+  // Active-low, and allow it time to settle
+  // Note that it tends to fall one way or the other, depending on balance
+  // And right now the correction is only one direction
+  // So to compensate for the fall, need to either flip the stepper direction,
+  // or implement negative corrections here.
+  delay(300);
+  digitalWrite(__HWCONSTANTS_H_STEP_RESET, LOW);
+  delay(300);
+  digitalWrite(__HWCONSTANTS_H_STEP_RESET, HIGH);
+  delay(300);
+
+  // Implement the stepper offset
+  if (__HWCONSTANTS_H_STEPPER_OFFSET_STEPS > 0) {
+    delay(10);
+    for(int i=0; 
+        i < (__HWCONSTANTS_H_MICROSTEP * __HWCONSTANTS_H_STEPPER_OFFSET_STEPS); 
+        i++) {
+      rotate_one_step();
+    }
+  } else if (__HWCONSTANTS_H_STEPPER_OFFSET_STEPS < 0) {
+    // Do it backwards
+    digitalWrite(__HWCONSTANTS_H_STEP_DIR, HIGH);  
+    delay(10);
+    for(int i=0; 
+        i < (__HWCONSTANTS_H_MICROSTEP * -__HWCONSTANTS_H_STEPPER_OFFSET_STEPS); 
+        i++) {
+      rotate_one_step();
+    }  
+    digitalWrite(__HWCONSTANTS_H_STEP_DIR, LOW);  
+  }
+  #endif
+
+  // Opto
+  pinMode(__HWCONSTANTS_H_OPTO, OUTPUT);
+  digitalWrite(__HWCONSTANTS_H_OPTO, LOW);
+
   //// Run communications until we've received all setup info
   // Later make this a new flag. For now wait for first trial release.
   while (!flag_start_trial)
@@ -105,46 +167,15 @@ void setup()
     }
   }
   
-  
   //// Now finalize the setup using the received initial parameters
   // user_setup2() function?
-  
-  // Set up the stepper according to two-pin or four-pin mode
-  if (param_values[tpidx_2PSTP] == __TRIAL_SPEAK_YES)
-  { // Two-pin mode
-    pinMode(TWOPIN_ENABLE_STEPPER, OUTPUT);
-    pinMode(DIRECTION_PIN, OUTPUT);
-    pinMode(STEP_PIN, OUTPUT);
-    //~ pinMode(TWOPIN_STEPPER_1, OUTPUT);
-    //~ pinMode(TWOPIN_STEPPER_2, OUTPUT);
-    
-    // Make sure it's off    
-    digitalWrite(TWOPIN_ENABLE_STEPPER, HIGH); 
-    
-    //~ // Initialize
-    //~ stimStepper = new Stepper(__HWCONSTANTS_H_NUMSTEPS, 
-      //~ TWOPIN_STEPPER_1, TWOPIN_STEPPER_2);
-  }
-  else
-  { // Four-pin mode
-    pinMode(ENABLE_STEPPER, OUTPUT);
-    pinMode(PIN_STEPPER1, OUTPUT);
-    pinMode(PIN_STEPPER2, OUTPUT);
-    pinMode(PIN_STEPPER3, OUTPUT);
-    pinMode(PIN_STEPPER4, OUTPUT);
-    digitalWrite(ENABLE_STEPPER, LOW); // # Make sure it's off
-    
-    stimStepper = new Stepper(__HWCONSTANTS_H_NUMSTEPS, 
-      PIN_STEPPER1, PIN_STEPPER2, PIN_STEPPER3, PIN_STEPPER4);
-  }
-  
+
   // thresholds for MPR121
+  #ifndef __HWCONSTANTS_H_USE_IR_DETECTOR
   mpr121_setup(TOUCH_IRQ, param_values[tpidx_TOU_THRESH], 
     param_values[tpidx_REL_THRESH]);
+  #endif
 
-  // Set the speed of the stepper
-  //~ stimStepper->setSpeed(param_values[tpidx_STEP_SPEED]);
-  
   // initial position of the stepper
   sticky_stepper_position = param_values[tpidx_STEP_INITIAL_POS];
   
@@ -175,13 +206,17 @@ void loop()
   static StateFakeResponseWindow sfrw(param_values[tpidx_RESP_WIN_DUR]);
   static StateInterRotationPause state_interrotation_pause(50);
   static StateWaitForServoMove state_wait_for_servo_move(
-    param_values[tpidx_SRV_TRAVEL_TIME]);
+    param_values[tpidx_SRV_TRAVEL_TIME] + __STATES_H_NOLICK_MAX_WAIT_MS);
   static StateInterTrialInterval state_inter_trial_interval(
     param_values[tpidx_ITI]);
   static StateErrorTimeout state_error_timeout(
     param_values[tpidx_ERROR_TIMEOUT], linServo);
   static StatePostRewardPause state_post_reward_pause(
         param_values[tpidx_INTER_REWARD_INTERVAL]);
+  
+  // persistent time of last touch
+  // passed to wait_for_servo_move
+  static unsigned long time_of_last_touch = 0;
 
   // The next state, by default the same as the current state
   next_state = current_state;
@@ -202,7 +237,17 @@ void loop()
   // could put other user-specified every_loop() stuff here
   
   // Poll touch inputs
+  #ifndef __HWCONSTANTS_H_USE_IR_DETECTOR
   touched = pollTouchInputs();
+  #endif
+  
+  #ifdef __HWCONSTANTS_H_USE_IR_DETECTOR
+  if (time % 2000 == 0) {
+    touched = pollTouchInputs(time, 1);
+  } else {
+    touched = pollTouchInputs(time, 0);
+  }
+  #endif
   
   // announce sticky
   if (touched != sticky_touched)
@@ -211,6 +256,7 @@ void loop()
     Serial.print(" TCH ");
     Serial.println(touched);
     sticky_touched = touched;
+    time_of_last_touch = time;
   }  
   
   //// Begin state-dependent operations
@@ -238,6 +284,11 @@ void loop()
 
     //// TRIAL_START. Same for all protocols.
     case TRIAL_START:
+      // turn the backlight off
+      digitalWrite(__HWCONSTANTS_H_BACK_LIGHT, LOW);
+      delay(133);
+      digitalWrite(__HWCONSTANTS_H_BACK_LIGHT, HIGH);    
+    
       // Set up the trial based on received trial parameters
       Serial.print(time);
       Serial.println(" TRL_START");
@@ -268,7 +319,7 @@ void loop()
       sfrw = StateFakeResponseWindow(param_values[tpidx_RESP_WIN_DUR]);
       state_interrotation_pause = StateInterRotationPause(50);
       state_wait_for_servo_move = StateWaitForServoMove(
-        param_values[tpidx_SRV_TRAVEL_TIME]);
+        param_values[tpidx_SRV_TRAVEL_TIME] + __STATES_H_NOLICK_MAX_WAIT_MS);
       state_inter_trial_interval = StateInterTrialInterval(
         param_values[tpidx_ITI] + jitter);
       state_error_timeout = StateErrorTimeout(
@@ -286,7 +337,7 @@ void loop()
       // OTOH, could argue that MOVE_SERVO and WAIT_FOR_SERVO_MOVE are 
       // the same state, and this distinction is just between the s_setup
       // and the rest of it.
-      state_wait_for_servo_move.update(linServo);
+      state_wait_for_servo_move.update(linServo, time_of_last_touch);
       state_wait_for_servo_move.run(time);
       break;
     
@@ -552,8 +603,11 @@ void asynch_action_set_thresh()
   unsigned long time = millis();
   Serial.print(time);
   Serial.println(" EV AAST");
+
+  #ifndef __HWCONSTANTS_H_USE_IR_DETECTOR
   mpr121_setup(TOUCH_IRQ, param_values[tpidx_TOU_THRESH], 
     param_values[tpidx_REL_THRESH]);
+  #endif
 }
 
 void asynch_action_light_on()
