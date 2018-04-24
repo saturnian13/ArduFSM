@@ -164,6 +164,8 @@ void loop()
   //// Variable declarations
   // get the current time as early as possible in this function
   unsigned long time = millis();
+  
+  int jitter = random(0,3000);
 
   // statics 
   // these are just "declared" here, they can be modified at the beginning
@@ -228,6 +230,7 @@ void loop()
         Serial.println(" TRL_RELEASED");
         flag_start_trial = 0;
         
+       
         // Proceed to next trial
         next_state = TRIAL_START;
       }
@@ -267,7 +270,7 @@ void loop()
       state_wait_for_servo_move = StateWaitForServoMove(
         param_values[tpidx_SRV_TRAVEL_TIME]);
       state_inter_trial_interval = StateInterTrialInterval(
-        param_values[tpidx_ITI]);
+        param_values[tpidx_ITI] + jitter);
       state_error_timeout = StateErrorTimeout(
         param_values[tpidx_ERROR_TIMEOUT], linServo);
     
@@ -343,10 +346,13 @@ void loop()
     case INTER_TRIAL_INTERVAL:
       // turn the light on
       digitalWrite(__HWCONSTANTS_H_HOUSE_LIGHT, HIGH);
-      
+    
+    
       // Move servo back
       linServo.write(param_values[tpidx_SRV_FAR]);
-    
+
+
+      
       // Announce trial_results
       state_inter_trial_interval.run(time);
       break;
