@@ -202,12 +202,9 @@ class StateErrorTimeout : public TimedState {
 class StateWaitForServoMove : public TimedState {
   protected:
     Servo my_linServo;
-<<<<<<< HEAD
-=======
     bool direct_delivery_delivered = 0;
     unsigned long my_time_of_last_touch = 0;
   
->>>>>>> upstream/master
     void s_setup();
     void s_finish();
   
