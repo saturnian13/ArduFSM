@@ -160,7 +160,7 @@ def get_rig_specific(rigname):
     
     Currently hard coded but should probably be read from disk.
     """
-    elif rigname == 'L4':
+    if rigname == 'L4':
         return {
             'STPSPD': 30,
             '2PSTP': YES,
