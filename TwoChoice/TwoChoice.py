@@ -139,7 +139,8 @@ except KeyError:
     pass
 if runner_params['use_ir_detector']:
     params_table.loc['TOUT', 'init_val'] = runner_params['l_ir_detector_thresh']    
-    params_table.loc['RELT', 'init_val'] = runner_params['r_ir_detector_thresh']   
+    params_table.loc['RELT', 'init_val'] = runner_params['r_ir_detector_thresh']  
+    params_table.loc['RELT', 'init_val'] = 3000
 
 # Set the current-value to be equal to the init_val
 params_table['current-value'] = params_table['init_val'].copy()
@@ -180,12 +181,7 @@ if not runner_params['has_side_HE_sensor']:
 raw_input("Fill water reservoirs and press Enter to start")
 
 ## Set up the scheduler
-if runner_params['scheduler'] == 'Auto':
-    scheduler_obj = Scheduler.Auto
-elif runner_params['scheduler'] == 'ForcedAlternation':
-    scheduler_obj = Scheduler.ForcedAlternation
-elif runner_params['scheduler'] == 'RandomStim':
-    scheduler_obj = Scheduler.RandomStim
+scheduler_obj = Scheduler.RandomStim
 
 # Do all scheduler objects accept reverse_srvpos?
 scheduler = scheduler_obj(trial_types=trial_types, reverse_srvpos=True)
