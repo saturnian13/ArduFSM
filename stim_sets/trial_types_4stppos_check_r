@@ -1,0 +1,5 @@
+name,rewside,srvpos,stppos
+NO-CV-S,right,1100,100
+GO-CV-M,left,1100,50
+GO-CC-S,left,1100,150
+NO-CC-M,right,1100,1
