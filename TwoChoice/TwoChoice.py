@@ -349,9 +349,9 @@ except trial_setter_ui.QuitException as qe:
 
     rewdict = ArduFSM.plot.count_rewards(splines)
     nlrew = (rewdict['left auto'].sum() + 
-        rewdict['left manual'].sum() + rewdict['left direct'].sum())
+        rewdict['left manual'].sum())
     nrrew = (rewdict['right auto'].sum() + 
-        rewdict['right manual'].sum() + rewdict['right direct'].sum())
+        rewdict['right manual'].sum())
     
     # Get volumes and pipe position
     print "Preparing to save. Press CTRL+C to abort save."
