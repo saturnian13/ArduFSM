@@ -196,7 +196,7 @@ void loop()
   // get the current time as early as possible in this function
   unsigned long time = millis();
   
-  int jitter = random(0,3000);
+  //int jitter = random(0,3000);
 
   // statics 
   // these are just "declared" here, they can be modified at the beginning
@@ -321,7 +321,7 @@ void loop()
       state_wait_for_servo_move = StateWaitForServoMove(
         param_values[tpidx_SRV_TRAVEL_TIME] + __STATES_H_NOLICK_MAX_WAIT_MS);
       state_inter_trial_interval = StateInterTrialInterval(
-        param_values[tpidx_ITI] + jitter);
+        param_values[tpidx_ITI]);
       state_error_timeout = StateErrorTimeout(
         param_values[tpidx_ERROR_TIMEOUT], linServo);
     
