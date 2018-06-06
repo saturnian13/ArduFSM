@@ -100,7 +100,7 @@ params_table['current-value'] = params_table['init_val'].copy()
 
 
 ## Load the specified trial types
-trial_types_name = 'trial_types_licktrain'
+trial_types_name = 'trial_types_licktrain_left'
 trial_types = get_trial_types(trial_types_name)
 
 
