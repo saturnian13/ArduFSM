@@ -768,6 +768,21 @@ int state_reward_l(STATE_TYPE& next_state)
   digitalWrite(L_REWARD_VALVE, HIGH);
   delay(param_values[tpidx_REWARD_DUR_L]);
   digitalWrite(L_REWARD_VALVE, LOW); 
+  bool licking_l = (get_touched_channel(pollTouchInputs(millis(), 1), 0) == 1);
+
+  while (!licking_l)
+  //while(true)
+  {
+    licking_l = (get_touched_channel(pollTouchInputs(millis(), 1), 0) == 1);
+    Serial.println(licking_l);
+    //~ if (licking_l)
+    //~ {  
+      //~ break;
+    //~ }
+    Serial.print(millis());
+    Serial.println(" wait ");
+    delay(50);
+  }     
   next_state = INTER_TRIAL_INTERVAL;
   return 0;  
 }
