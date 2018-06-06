@@ -160,7 +160,7 @@ def get_rig_specific(rigname):
     
     Currently hard coded but should probably be read from disk.
     """
-    if rigname == 'L4':
+    if rigname == 'R0':
         return {
             'STPSPD': 30,
             '2PSTP': YES,
@@ -173,7 +173,7 @@ def get_rig_specific(rigname):
             'RWIN': 2000,
             'ITI': 4000,
             }
-    elif rigname == 'L5':
+    elif rigname == 'R1':
         return {
             'STPSPD': 30,
             '2PSTP': YES,
@@ -205,13 +205,13 @@ def get_rig_specific_passive_detect(rigname):
 def get_rig_specific_licktrain(rigname):
     """Return a dict of params for each rig for licktrain.
     """
-    if rigname == 'L4':
+    if rigname == 'R0':
         return {
             'RD_L': 30,
             'RD_R': 30,
             }  
             
-    elif rigname == 'L5':
+    elif rigname == 'R1':
         return {
             'RD_L': 30,
             'RD_R': 30,
