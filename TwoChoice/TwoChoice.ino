@@ -191,32 +191,34 @@ void loop()
 { /* Called over and over again. On each call, the behavior is determined
      by the current state.
   */
-  
   //// Variable declarations
   // get the current time as early as possible in this function
   unsigned long time = millis();
-  
-  //int jitter = random(0,3000);
+
+  //int jitter = random(0,3000); 
 
   // statics 
   // these are just "declared" here, they can be modified at the beginning
-  // of each trial
+  // of each trialf
   static STATE_TYPE current_state = WAIT_TO_START_TRIAL;
   static StateResponseWindow srw(param_values[tpidx_RESP_WIN_DUR]);
   static StateFakeResponseWindow sfrw(param_values[tpidx_RESP_WIN_DUR]);
   static StateInterRotationPause state_interrotation_pause(50);
-  static StateWaitForServoMove state_wait_for_servo_move(
-    param_values[tpidx_SRV_TRAVEL_TIME] + __STATES_H_NOLICK_MAX_WAIT_MS);
+  static StateWaitForServoMove state_wait_for_servo_move(1);
   static StateInterTrialInterval state_inter_trial_interval(
     param_values[tpidx_ITI]);
   static StateErrorTimeout state_error_timeout(
     param_values[tpidx_ERROR_TIMEOUT], linServo);
   static StatePostRewardPause state_post_reward_pause(
         param_values[tpidx_INTER_REWARD_INTERVAL]);
+  static PreRewardPause pre_reward_pause(700);
+  static PreITIPause pre_iti_pause(700);
+  
   
   // persistent time of last touch
   // passed to wait_for_servo_move
   static unsigned long time_of_last_touch = 0;
+
 
   // The next state, by default the same as the current state
   next_state = current_state;
@@ -236,6 +238,9 @@ void loop()
   //// User protocol code
   // could put other user-specified every_loop() stuff here
   
+  //Serial.print(time);
+  //Serial.println("START OF LOOOOOOP");
+
   // Poll touch inputs
   #ifndef __HWCONSTANTS_H_USE_IR_DETECTOR
   touched = pollTouchInputs();
@@ -257,6 +262,7 @@ void loop()
     Serial.println(touched);
     sticky_touched = touched;
     time_of_last_touch = time;
+
   }  
   
   //// Begin state-dependent operations
@@ -292,6 +298,11 @@ void loop()
       // Set up the trial based on received trial parameters
       Serial.print(time);
       Serial.println(" TRL_START");
+    
+      digitalWrite(TIMER_PIN, HIGH);
+      delay(1);
+      digitalWrite(TIMER_PIN, LOW);
+    
       for(int i=0; i < N_TRIAL_PARAMS; i++)
       {
         if (param_report_ET[i]) 
@@ -318,13 +329,16 @@ void loop()
       srw = StateResponseWindow(param_values[tpidx_RESP_WIN_DUR]);
       sfrw = StateFakeResponseWindow(param_values[tpidx_RESP_WIN_DUR]);
       state_interrotation_pause = StateInterRotationPause(50);
-      state_wait_for_servo_move = StateWaitForServoMove(
-        param_values[tpidx_SRV_TRAVEL_TIME] + __STATES_H_NOLICK_MAX_WAIT_MS);
+      state_wait_for_servo_move = StateWaitForServoMove(1);
       state_inter_trial_interval = StateInterTrialInterval(
         param_values[tpidx_ITI]);
       state_error_timeout = StateErrorTimeout(
         param_values[tpidx_ERROR_TIMEOUT], linServo);
-    
+      pre_reward_pause = PreRewardPause(700);
+      pre_iti_pause = PreITIPause(700);
+
+
+      
       next_state = ROTATE_STEPPER2;
       break;
     
@@ -384,8 +398,17 @@ void loop()
       break;
     
     case POST_REWARD_PAUSE:
+      state_post_reward_pause.update(touched);
       state_post_reward_pause.run(time);
       break;    
+    
+    case PRE_REWARD_PAUSE:
+      pre_reward_pause.run(time);
+      break; 
+
+    case PRE_ITI_PAUSE:
+      pre_iti_pause.run(time);
+      break;
     
     case ERROR:
       // turn the light on
@@ -429,7 +452,6 @@ void loop()
     Serial.println(next_state);
   }
   current_state = next_state;
-  
   return;
 }
 
