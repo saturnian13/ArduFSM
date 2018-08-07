@@ -30,6 +30,8 @@ from ArduFSM import mainloop
 import ParamsTable
 import shutil
 
+import smtplib
+
 def move_figure(f, x, y):
     """Move figure's upper left corner to pixel (x, y)"""
     backend = matplotlib.get_backend()
@@ -290,6 +292,9 @@ try:
             print "Waiting for webcam window"
             time.sleep(.5)
     
+    n_trials_so_far = 0
+    time_current_trial_start = time.time() + 10000
+    debug = 0
     while True:
         ## Chat updates
         # Update chatter
@@ -299,6 +304,35 @@ try:
         # Could we skip this step if chatter reports no new device lines?
         logfile_lines = TrialSpeak.read_lines_from_file(logfilename)
         splines = TrialSpeak.split_by_trial(logfile_lines)
+
+        
+        # keep track of how long it's been since last trial started, and text me if it's been >3min
+        #check if new trial has started
+        if len(splines)-1 > n_trials_so_far:
+            debug = 1            
+            n_trials_so_far = len(splines)
+            time_current_trial_start = time.time()
+
+        current_time = time.time()
+        if (current_time > (time_current_trial_start + 120) and ui.has_texted  == 0): 
+            #has_texted = 1
+            ui.has_texted = True
+            #text me!
+            username = 'pythontext13'
+            password = 'pythonTexting'
+            fromaddr = 'pythontext13@gmail.com'
+            toaddrRikki = '4409916383@txt.att.net'
+            toaddrMeena = '5164135550@vtext.com'
+
+            msg = ('Come check!')
+
+            server = smtplib.SMTP('smtp.gmail.com:587')
+            server.starttls()
+            server.login(username, password)
+            server.sendmail(fromaddr, toaddrRikki, msg)
+            server.sendmail(fromaddr, toaddrMeena, msg)
+            server.quit()
+            
 
         # Run the trial setting logic
         # This try/except is no good because it conflates actual
