@@ -124,6 +124,8 @@ enum STATE_TYPE
   PRE_SERVO_WAIT,
   SERVO_WAIT,
   POST_REWARD_PAUSE,
+  PRE_REWARD_PAUSE,
+  PRE_ITI_PAUSE,
 };
 
 // Declare utility functions
@@ -228,6 +230,24 @@ class StatePostRewardPause : public TimedState {
   
   public:
     StatePostRewardPause(unsigned long d) : TimedState(d) { };
+    void update(bool touched);
+};
+
+
+class PreRewardPause : public TimedState {
+  protected:
+    void s_finish();
+  
+  public:
+    PreRewardPause(unsigned long d) : TimedState(d) { };
+};
+
+class PreITIPause : public TimedState {
+  protected:
+    void s_finish();
+  
+  public:
+    PreITIPause(unsigned long d) : TimedState(d) { };
 };
 
 #endif
