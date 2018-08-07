@@ -49,6 +49,9 @@ class UIActionTaker:
     def ui_action_threshold(self):
         self.chatter.queued_write_to_device('ACT THRESH')
 
+    def ui_action_clear_text_flag(self):
+        self.ui.has_texted = False
+
     def ui_action_save(self):
         """No longer does anything because this is now handled by TwoChoice.py
         
@@ -170,6 +173,7 @@ class UI(object):
         self.ts_obj = ts_obj
         self.timeout = timeout
         self.banner = banner
+        self.has_texted = False
 
         # Create default positioning tables
         self.element_row = {
@@ -211,6 +215,7 @@ class UI(object):
             ('Q', 'save + quit', self.ui_action_taker.ui_action_save),
             ('P', 'set param', self.ui_action_taker.set_param),
             ('T', 'touch thresh', self.ui_action_taker.ui_action_threshold),
+            ('D', 'clear texted', self.ui_action_taker.ui_action_clear_text_flag),
             ]
         
         # Dispatch table for schedulers
