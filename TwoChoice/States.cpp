@@ -164,6 +164,7 @@ void StateResponseWindow::loop()
     //next_state = ERROR;
     results_values[tridx_OUTCOME] = OUTCOME_ERROR;
   }
+  
 }
 
 void StateResponseWindow::s_finish()
@@ -178,22 +179,24 @@ void StateResponseWindow::s_finish()
     results_values[tridx_OUTCOME] = OUTCOME_SPOIL;
   }
   
-  //rotate(25);
   if (rotate_dir==0) {//was rotating in neg dir, now rotate pos dir
     rotate(25); //rotate into gap between stimuli (so CS removed)
   }
   else {
     rotate(-25);
   }
-  
+
   // Send to reward state if this was a rewarded trial
   if (param_values[tpidx_REWSIDE] == LEFT) {
-    next_state = REWARD_L;
+    //next_state = REWARD_L;
+    next_state = PRE_REWARD_PAUSE; //"trace interval"
   }
   // Otherwise send to inter trial interval
   else {
-    next_state = INTER_TRIAL_INTERVAL;
+    //next_state = INTER_TRIAL_INTERVAL;
+    next_state = PRE_ITI_PAUSE; //"trace interval"
   }
+  
 }
 
 void StateResponseWindow::set_licking_variables(bool &licking_l, bool &licking_r)
@@ -216,6 +219,18 @@ void StateFakeResponseWindow::set_licking_variables(bool &licking_l, bool &licki
 void StateInterRotationPause::s_finish()
 {
   next_state = ROTATE_STEPPER2;
+}
+
+//trace interval: pause before after rotating shapes away and before give reward
+void PreRewardPause::s_finish()
+{
+  next_state = REWARD_L;
+}
+
+//trace interval
+void PreITIPause::s_finish()
+{
+  next_state = INTER_TRIAL_INTERVAL;
 }
 
 
@@ -507,7 +522,7 @@ int state_rotate_stepper2(STATE_TYPE& next_state)
   }
   #endif
   
-  next_state = MOVE_SERVO;
+  next_state = RESPONSE_WINDOW;
   return 0;    
 }
   
@@ -751,17 +766,50 @@ void rotate_one_step()
 
 
 //// Post-reward state
+
+void StatePostRewardPause::update(bool touched)
+{
+	if (touched)
+	{
+		next_state = INTER_TRIAL_INTERVAL;
+	}
+	else
+	{
+		//~ Serial.print(millis());
+		//~ Serial.println(" wait ");
+		next_state = POST_REWARD_PAUSE;
+	}
+}
+
+
 void StatePostRewardPause::s_finish()
 {
   // Turn off the laser
   // We do this here so that the laser doesn't turn off immediately upon
   // choice, but rather with a latency of solenoid time + post reward pause
   // time.
-  digitalWrite(__HWCONSTANTS_H_OPTO, 0);  
+  //digitalWrite(__HWCONSTANTS_H_OPTO, 0);  
   
-  next_state = INTER_TRIAL_INTERVAL;
+	
+  //wait if not licking, move to ITI if licking.    
+	
+  //~ bool licking_l = (get_touched_channel(pollTouchInputs(millis(), 1), 0) == 1);
+  //~ if (licking_l)
+  //~ {
+	//~ next_state = INTER_TRIAL_INTERVAL;
+  //~ } 	
+  //~ else
+  //~ {
+	//~ Serial.print(millis());	
+	//~ Serial.println(" wait ");  
+	//~ next_state = POST_REWARD_PAUSE;
+  //~ }
+
+
 }
 
+//debug. remove.
+//int i =0;
 // The reward states use delay because they need to be millisecond-precise
 int state_reward_l(STATE_TYPE& next_state)
 {
@@ -769,22 +817,28 @@ int state_reward_l(STATE_TYPE& next_state)
   delay(param_values[tpidx_REWARD_DUR_L]);
   digitalWrite(L_REWARD_VALVE, LOW); 
   bool licking_l = (get_touched_channel(pollTouchInputs(millis(), 1), 0) == 1);
-
-  while (!licking_l)
-  //while(true)
+  //loop and wait until mouse licks so that water doesnt pool up
+  //~ while (!licking_l)
+  //~ {
+    //~ licking_l = (get_touched_channel(pollTouchInputs(millis(), 1), 0) == 1);
+    //~ Serial.println(licking_l);
+    //~ Serial.print(millis());
+    //~ Serial.println(" wait ");
+  //~ }     
+  //~ next_state = INTER_TRIAL_INTERVAL;
+  //~ return 0;
+  
+  if (licking_l)
   {
-    licking_l = (get_touched_channel(pollTouchInputs(millis(), 1), 0) == 1);
-    Serial.println(licking_l);
-    //~ if (licking_l)
-    //~ {  
-      //~ break;
-    //~ }
-    Serial.print(millis());
-    Serial.println(" wait ");
-    delay(50);
-  }     
-  next_state = INTER_TRIAL_INTERVAL;
-  return 0;  
+	next_state = INTER_TRIAL_INTERVAL;
+	return 0;
+  }
+  else
+  {
+	next_state = POST_REWARD_PAUSE;
+	return 0;
+  }
+    
 }
 int state_reward_r(STATE_TYPE& next_state)
 {
