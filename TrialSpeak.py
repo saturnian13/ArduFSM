@@ -463,7 +463,7 @@ def make_trials_matrix_from_logfile_lines2(logfile_lines,
     if len(logfile_lines) == 0:
         return pandas.DataFrame(np.zeros((0, len(always_insert))),
             columns=always_insert)
-    
+
     # Parse
     pldf = parse_lines_into_df(logfile_lines)
     if len(pldf) == 0:
