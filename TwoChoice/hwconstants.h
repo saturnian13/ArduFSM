@@ -41,6 +41,9 @@
 // Servo
 #define LINEAR_SERVO 13
 
+//Timer pin
+#define TIMER_PIN 11
+
 //// ANALOG
 #define __HWCONSTANTS_H_HALL1 1
 #define __HWCONSTANTS_H_HALL2 0
