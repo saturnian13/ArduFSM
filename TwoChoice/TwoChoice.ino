@@ -211,8 +211,17 @@ void loop()
     param_values[tpidx_ERROR_TIMEOUT], linServo);
   static StatePostRewardPause state_post_reward_pause(
         param_values[tpidx_INTER_REWARD_INTERVAL]);
-  static PreRewardPause pre_reward_pause(700);
-  static PreITIPause pre_iti_pause(700);
+
+  //add trace interval (using "nolick required" variable, because it already exists)
+  int trace_interval = 700;
+  if (__STATES_H_NOLICK_REQUIRED_INTERVAL_MS == 0) {
+      trace_interval = 700;
+  }
+  else {
+      trace_interval = __STATES_H_NOLICK_REQUIRED_INTERVAL_MS;
+  }
+  static PreRewardPause pre_reward_pause(trace_interval);
+  static PreITIPause pre_iti_pause(trace_interval);
   
   
   // persistent time of last touch
@@ -334,8 +343,8 @@ void loop()
         param_values[tpidx_ITI]);
       state_error_timeout = StateErrorTimeout(
         param_values[tpidx_ERROR_TIMEOUT], linServo);
-      pre_reward_pause = PreRewardPause(700);
-      pre_iti_pause = PreITIPause(700);
+      pre_reward_pause = PreRewardPause(trace_interval);
+      pre_iti_pause = PreITIPause(trace_interval);
 
 
       
