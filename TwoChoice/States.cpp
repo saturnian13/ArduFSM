@@ -179,6 +179,16 @@ void StateResponseWindow::s_finish()
     results_values[tridx_OUTCOME] = OUTCOME_SPOIL;
   }
   
+  //delay removing object 20% of the time
+  int r = random(1,6);
+  Serial.print("1000 DBG RANDOM");
+  Serial.println(r);
+  if (r==1){
+    //delay by extra 1 sec
+    Serial.println("1000 DBG DELAY" );
+    delay(1000);
+  }
+  
   if (rotate_dir==0) {//was rotating in neg dir, now rotate pos dir
     rotate(25); //rotate into gap between stimuli (so CS removed)
   }
@@ -816,7 +826,8 @@ int state_reward_l(STATE_TYPE& next_state)
   digitalWrite(L_REWARD_VALVE, HIGH);
   delay(param_values[tpidx_REWARD_DUR_L]);
   digitalWrite(L_REWARD_VALVE, LOW); 
-  bool licking_l = (get_touched_channel(pollTouchInputs(millis(), 1), 0) == 1);
+  //~ bool licking_l = (get_touched_channel(pollTouchInputs(millis(), 1), 0) == 1);
+  //~ bool licking_l = (get_touched_channel(pollTouchInputs(), 0) == 1);
   //loop and wait until mouse licks so that water doesnt pool up
   //~ while (!licking_l)
   //~ {
@@ -828,16 +839,18 @@ int state_reward_l(STATE_TYPE& next_state)
   //~ next_state = INTER_TRIAL_INTERVAL;
   //~ return 0;
   
-  if (licking_l)
-  {
-	next_state = INTER_TRIAL_INTERVAL;
-	return 0;
-  }
-  else
-  {
-	next_state = POST_REWARD_PAUSE;
-	return 0;
-  }
+	
+  next_state = INTER_TRIAL_INTERVAL;
+  //~ if (licking_l)
+  //~ {
+	//~ next_state = INTER_TRIAL_INTERVAL;
+	//~ return 0;
+  //~ }
+  //~ else
+  //~ {
+	//~ next_state = POST_REWARD_PAUSE;
+	//~ return 0;
+  //~ }
     
 }
 int state_reward_r(STATE_TYPE& next_state)
