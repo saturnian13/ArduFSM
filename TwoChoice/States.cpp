@@ -827,7 +827,7 @@ int state_reward_l(STATE_TYPE& next_state)
   delay(param_values[tpidx_REWARD_DUR_L]);
   digitalWrite(L_REWARD_VALVE, LOW); 
   //~ bool licking_l = (get_touched_channel(pollTouchInputs(millis(), 1), 0) == 1);
-  //~ bool licking_l = (get_touched_channel(pollTouchInputs(), 0) == 1);
+  bool licking_l = (get_touched_channel(pollTouchInputs(), 0) == 1);
   //loop and wait until mouse licks so that water doesnt pool up
   //~ while (!licking_l)
   //~ {
@@ -840,17 +840,17 @@ int state_reward_l(STATE_TYPE& next_state)
   //~ return 0;
   
 	
-  next_state = INTER_TRIAL_INTERVAL;
-  //~ if (licking_l)
-  //~ {
-	//~ next_state = INTER_TRIAL_INTERVAL;
-	//~ return 0;
-  //~ }
-  //~ else
-  //~ {
-	//~ next_state = POST_REWARD_PAUSE;
-	//~ return 0;
-  //~ }
+  //~ next_state = INTER_TRIAL_INTERVAL;
+  if (licking_l)
+  {
+	next_state = INTER_TRIAL_INTERVAL;
+	return 0;
+  }
+  else
+  {
+	next_state = POST_REWARD_PAUSE;
+	return 0;
+  }
     
 }
 int state_reward_r(STATE_TYPE& next_state)
