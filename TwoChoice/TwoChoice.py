@@ -322,7 +322,7 @@ try:
             password = 'pythonTexting'
             fromaddr = 'pythontext13@gmail.com'
             toaddrRikki = '4409916383@txt.att.net'
-            toaddrMeena = '5164135550@vtext.com'
+            #toaddrMeena = '5164135550@vtext.com'
 
             msg = ('Come check!')
 
@@ -330,7 +330,7 @@ try:
             server.starttls()
             server.login(username, password)
             server.sendmail(fromaddr, toaddrRikki, msg)
-            server.sendmail(fromaddr, toaddrMeena, msg)
+            #server.sendmail(fromaddr, toaddrMeena, msg)
             server.quit()
             
 
